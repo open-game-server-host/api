@@ -1,0 +1,22 @@
+{
+  "name": "@open-game-server-host/api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "build/api.js",
+  "scripts": {
+    "start": "tsc && node build/api.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/open-game-server-host/api.git"
+  },
+  "dependencies": {
+    "@open-game-server-host/backend-lib": "^1.0.12",
+    "express": "^5.2.1",
+    "express-validator": "^7.3.1"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.0.9"
+  }
+}
