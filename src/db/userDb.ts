@@ -1,6 +1,7 @@
-import { User } from "../interfaces/user";
+import { User, UserData } from "../interfaces/user";
 
 export interface UserDb {
-    get(): Promise<User>;
-    set(firebaseUid: string): Promise<User>;
+    get(uid: string): Promise<User>;
+    create(data: UserData): Promise<User>;
+    exists(uid: string): Promise<boolean>;
 }

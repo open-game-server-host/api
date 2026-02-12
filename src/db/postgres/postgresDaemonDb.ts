@@ -1,19 +1,12 @@
-import { Container } from "../../interfaces/container";
-import { CreateDaemonInfo, Daemon } from "../../interfaces/daemon";
+import { Daemon, DaemonData } from "../../interfaces/daemon";
 import { DaemonDb } from "../daemonDb";
 
 export class PostgresDaemonDb implements DaemonDb {
-    get(): Promise<Daemon> {
+    async get(id: string): Promise<Daemon> {
         throw new Error("Method not implemented.");
     }
-    set(info: CreateDaemonInfo): Promise<Daemon> {
+    
+    async create(data: DaemonData): Promise<Daemon> {
         throw new Error("Method not implemented.");
     }
-    getContainers(): Promise<Container[]> {
-        throw new Error("Method not implemented.");
-    }
-    addContainer(container: Container): Promise<void> {
-        throw new Error("Method not implemented.");
-    }
-
 }

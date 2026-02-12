@@ -37,7 +37,7 @@ containerHttpRouter.post("/:containerId/name", async (req, res) => {
 
 });
 
-containerHttpRouter.post("/:containerId/size", async (req, res) => {
+containerHttpRouter.post("/:containerId/resize", async (req, res) => {
     // TODO adjust container segments up or down, may have to relocate to find enough segments
 });
 

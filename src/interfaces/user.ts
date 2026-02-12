@@ -1,5 +1,9 @@
 export interface User {
-    id: number;
-    firebase_uid: string;
+    id: string;
+    uid: string;
     created_at: Date;
+}
+
+export interface UserData {
+    uid: string;
 }
