@@ -29,7 +29,7 @@ export abstract class LocalDb {
 
     protected writeJsonFile<T>(file: string, data: T) {
         const path = this.getJsonFilePath(file);
-        writeFileSync(path, JSON.stringify(data));
+        writeFileSync(path, JSON.stringify(data, null, 2));
     }
 
     protected listJsonFiles<T>(): T[] {
