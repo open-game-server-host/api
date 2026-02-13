@@ -3,7 +3,7 @@ import { Router } from "express";
 export const userHttpRouter = Router();
 
 userHttpRouter.get("/", async (req, res) => {
-    // TODO return user data
+    // TODO authenticate user to get uid
 });
 
 userHttpRouter.post("/", async (req, res) => {
@@ -11,5 +11,5 @@ userHttpRouter.post("/", async (req, res) => {
 });
 
 userHttpRouter.get("/containers", async (req, res) => {
-
+    
 });
