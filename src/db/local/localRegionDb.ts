@@ -1,10 +1,10 @@
-import { Region, RegionData } from "../../interfaces/region";
+import { Region, RegionData } from "@open-game-server-host/backend-lib";
 import { RegionDb } from "../regionDb";
 import { LocalDb } from "./localDb";
 
 export class LocalRegionDb extends LocalDb implements RegionDb {
     constructor() {
-        super("localdb/regions");
+        super("regions");
     }
 
     async get(id: string): Promise<Region> {
@@ -21,6 +21,10 @@ export class LocalRegionDb extends LocalDb implements RegionDb {
     }
     
     async list(): Promise<Region[]> {
-        return this.listJsonFiles<Region>();
+        const regions: Region[] = [];
+        for (const id of this.enumerateJsonFiles()) {
+            regions.push(await this.get(id));
+        }
+        return regions;
     }
 }

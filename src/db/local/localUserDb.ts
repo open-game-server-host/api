@@ -1,10 +1,10 @@
-import { User, UserData } from "../../interfaces/user";
+import { User, UserData } from "@open-game-server-host/backend-lib";
 import { UserDb } from "../userDb";
 import { LocalDb } from "./localDb";
 
 export class LocalUserDb extends LocalDb implements UserDb {
     constructor() {
-        super("localdb/users");
+        super("users");
     }
 
     async get(uid: string): Promise<User> {

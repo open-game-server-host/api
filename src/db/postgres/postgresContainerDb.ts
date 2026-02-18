@@ -1,4 +1,4 @@
-import { Container, ContainerData } from "../../interfaces/container";
+import { Container, CreateContainerData } from "@open-game-server-host/backend-lib";
 import { ContainerDb } from "../containerDb";
 import { PostgresDb } from "./postgresDb";
 
@@ -7,7 +7,7 @@ export class PostgresContainerDb extends PostgresDb implements ContainerDb {
         throw new Error("Method not implemented.");
     }
 
-    async create(data: ContainerData): Promise<Container> {
+    async create(data: CreateContainerData): Promise<Container> {
         throw new Error("Method not implemented.");
     }
 

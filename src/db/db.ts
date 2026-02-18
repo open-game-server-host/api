@@ -1,19 +1,19 @@
 import { Logger } from "@open-game-server-host/backend-lib";
 import { getDbType } from "../env";
 import { ContainerDb } from "./containerDb";
+import { ContainerPortDb } from "./containerPortDb";
 import { DaemonDb } from "./daemonDb";
 import { IpDb } from "./ipDb";
 import { LocalContainerDb } from "./local/localContainerDb";
+import { LocalContainerPortDb } from "./local/localContainerPortDb";
 import { LocalDaemonDb } from "./local/localDaemonDb";
 import { LocalIpDb } from "./local/localIpDb";
-import { LocalPortRangeDb } from "./local/localPortRangeDb";
 import { LocalRegionDb } from "./local/localRegionDb";
 import { LocalUserDb } from "./local/localUserDb";
-import { PortRangeDb } from "./portRangeDb";
 import { PostgresContainerDb } from "./postgres/postgresContainerDb";
+import { PostgresContainerPortDb } from "./postgres/postgresContainerPortDb";
 import { PostgresDaemonDb } from "./postgres/postgresDaemonDb";
 import { PostgresIpDb } from "./postgres/postgresIpDb";
-import { PostgresPortRangeDb } from "./postgres/postgresPortRangeDb";
 import { PostgresRegionDb } from "./postgres/postgresRegionDb";
 import { PostgresUserDb } from "./postgres/postgresUserDb";
 import { RegionDb } from "./regionDb";
@@ -31,9 +31,9 @@ logger.info(`Initialising databases`, {
 
 export const DATABASE = {
     container: getContainerDb(),
+    container_port: getContainerPortDb(),
     daemon: getDaemonDb(),
     ip: getIpDb(),
-    portRange: getPortRangeDb(),
     region: getRegionDb(),
     user: getUserDb()
 } as const;
@@ -45,6 +45,17 @@ function getContainerDb(): ContainerDb {
         }
         case "postgres": {
             return new PostgresContainerDb();
+        }
+    }
+}
+
+function getContainerPortDb(): ContainerPortDb {
+    switch (getDbType()) {
+        case "local": {
+            return new LocalContainerPortDb();
+        }
+        case "postgres": {
+            return new PostgresContainerPortDb();
         }
     }
 }
@@ -67,17 +78,6 @@ function getIpDb(): IpDb {
         }
         case "postgres": {
             return new PostgresIpDb();
-        }
-    }
-}
-
-function getPortRangeDb(): PortRangeDb {
-    switch (getDbType()) {
-        case "local": {
-            return new LocalPortRangeDb();
-        }
-        case "postgres": {
-            return new PostgresPortRangeDb();
         }
     }
 }

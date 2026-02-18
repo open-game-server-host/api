@@ -1,4 +1,4 @@
-import { Region, RegionData } from "../../interfaces/region";
+import { Region, RegionData } from "@open-game-server-host/backend-lib";
 import { RegionDb } from "../regionDb";
 
 export class PostgresRegionDb implements RegionDb {

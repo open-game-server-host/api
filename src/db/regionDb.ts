@@ -1,4 +1,4 @@
-import { Region, RegionData } from "../interfaces/region";
+import { Region, RegionData } from "@open-game-server-host/backend-lib";
 
 export interface RegionDb {
     get(id: string): Promise<Region>;

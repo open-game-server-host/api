@@ -1,7 +1,6 @@
-import { BodyRequest, respond } from "@open-game-server-host/backend-lib";
+import { BodyRequest, DaemonData, respond } from "@open-game-server-host/backend-lib";
 import { Router } from "express";
 import { DATABASE } from "../../db/db";
-import { DaemonData } from "../../interfaces/daemon";
 
 export const daemonHttpRouter = Router();
 

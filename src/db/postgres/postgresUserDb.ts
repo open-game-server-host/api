@@ -1,5 +1,4 @@
-import { Container } from "../../interfaces/container";
-import { User, UserData } from "../../interfaces/user";
+import { Container, User, UserData } from "@open-game-server-host/backend-lib";
 import { UserDb } from "../userDb";
 
 export class PostgresUserDb implements UserDb {

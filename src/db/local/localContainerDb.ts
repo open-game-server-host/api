@@ -1,32 +1,21 @@
-import { getApp, getVariant, getVersion, OGSHError } from "@open-game-server-host/backend-lib";
-import { Container, ContainerData, RawContainer } from "../../interfaces/container";
+import { Container, CreateContainerData, getVariant, getVersion, OGSHError, RawContainer } from "@open-game-server-host/backend-lib";
+import { segmentReserveMethod } from "../../daemon/daemon";
 import { ContainerDb } from "../containerDb";
 import { DATABASE } from "../db";
 import { LocalDb } from "./localDb";
 
 export class LocalContainerDb extends LocalDb implements ContainerDb {
     constructor() {
-        super("localdb/containers");
+        super("containers");
     }
 
     async get(id: string): Promise<Container> {
         const raw = this.readJsonFile<RawContainer>(id);
-        const app = await getApp(raw.app_id);
-        if (!app) {
-            throw new OGSHError("app/not-found", `container id '${id}' has an invalid app, id '${raw.app_id}'`);
-        }
-        const variant = await getVariant(raw.app_id, raw.variant_id);
-        if (!variant) {
-            throw new OGSHError("app/variant-not-found", `container id '${id}' has an invalid variant, app id '${raw.app_id}' variant id '${raw.variant_id}'`);
-        }
-        const version = await getVersion(raw.app_id, raw.variant_id, raw.version_id);
-        if (!version) {
-            throw new OGSHError("app/version-not-found", `container id '${id}' has an invalid version, app id '${raw.app_id}' variant id '${raw.variant_id}' version id '${raw.version_id}'`);
-        }
+        const ports = await DATABASE.container_port.listByContainer(id);
         return {
-            app,
-            variant,
-            version,
+            app_id: raw.app_id,
+            variant_id: raw.variant_id,
+            version_id: raw.version_id,
             contract_length_days: raw.contract_length_days,
             created_at: raw.created_at,
             daemon: await DATABASE.daemon.get(raw.daemon_id),
@@ -34,23 +23,36 @@ export class LocalContainerDb extends LocalDb implements ContainerDb {
             id: raw.id,
             locked: raw.locked,
             name: raw.name,
+            ports: ports.ports,
+            runtime: raw.runtime,
+            segments: raw.segments,
             terminate_at: raw.terminate_at,
-            user_id: raw.user_id
+            user_id: raw.user_id,
         }
     }
 
-    async create(data: ContainerData): Promise<Container> {
+    async create(data: CreateContainerData): Promise<Container> {
+        // TODO validate container data
+
         const id = this.createUniqueId();
         this.writeJsonFile<RawContainer>(id, {
             id,
-            ...data
+            ...data,
+            contract_length_days: 30, // TODO this should be defined by the plan the user selects at checkout
+            created_at: Date.now(),
+            daemon_id: await DATABASE.daemon.reserveSegments(data.region_id, segmentReserveMethod, data.segments),
+            locked: false
         });
+        const variant = await getVariant(data.app_id, data.variant_id);
+        const ports: number[] = [];
+        Object.keys(variant?.ports || {}).forEach(port => ports.push(+port));
+        await DATABASE.container_port.assign(id, ports);
         return this.get(id);
     }
 
     async listByDaemon(daemonId: string): Promise<Container[]> {
         const containers: Container[] = [];
-        for (const raw of this.listJsonFiles<RawContainer>().filter(c => c.daemon_id === daemonId)) {
+        for (const raw of this.listJsonFiles<RawContainer>().filter(c => c.data.daemon_id === daemonId)) {
             containers.push(await this.get(raw.id));
         }
         return containers;
@@ -58,7 +60,7 @@ export class LocalContainerDb extends LocalDb implements ContainerDb {
 
     async listByUser(uid: string): Promise<Container[]> {
         const containers: Container[] = [];
-        for (const raw of this.listJsonFiles<RawContainer>().filter(c => c.user_id === uid)) {
+        for (const raw of this.listJsonFiles<RawContainer>().filter(c => c.data.user_id === uid)) {
             containers.push(await this.get(raw.id));
         }
         return containers;

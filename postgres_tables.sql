@@ -10,14 +10,6 @@ CREATE TABLE ips (
     ipv6 INET
 );
 
-CREATE TABLE ip_port_ranges (
-    id SERIAL PRIMARY KEY,
-    ip_id INTEGER NOT NULL REFERENCES ips(id) ON DELETE CASCADE,
-    range_start INTEGER NOT NULL,
-    range_end INTEGER NOT NULL,
-    CHECK (range_start <= range_end)
-);
-
 CREATE TABLE regions (
     id SERIAL PRIMARY KEY,
     name VARCHAR(45) NOT NULL,
@@ -27,8 +19,9 @@ CREATE TABLE regions (
 
 CREATE TABLE daemons (
     id SERIAL PRIMARY KEY,
-    ipv4 INET,
-    ipv6 INET,
+    ip_id INTEGER NOT NULL REFERENCES ips(id) ON DELETE RESTRICT,
+    port_range_start INTEGER NOT NULL,
+    port_range_end INTEGER NOT NULL,
     segments INTEGER,
     segments_used INTEGER DEFAULT 0,
     cpu_name TEXT,
@@ -37,7 +30,9 @@ CREATE TABLE daemons (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     os VARCHAR(10),
     cpu_arch VARCHAR(50),
-    port_range_id INTEGER NOT NULL REFERENCES ip_port_ranges(id) ON DELETE RESTRICT
+    port_range_id INTEGER NOT NULL REFERENCES ip_port_ranges(id) ON DELETE RESTRICT,
+
+    CHECK (range_start <= range_end)
 );
 
 CREATE TABLE containers (
@@ -51,7 +46,7 @@ CREATE TABLE containers (
     terminate_at TIMESTAMP,
     contract_length_days INTEGER,
     locked BOOLEAN DEFAULT FALSE,
-    name VARCHAR(255),
+    name VARCHAR(30),
     free BOOLEAN DEFAULT FALSE
 );
 
@@ -75,4 +70,3 @@ CREATE INDEX idx_containers_user_id ON containers(user_id);
 CREATE INDEX idx_users_containers_user_id ON users_containers(user_id);
 CREATE INDEX idx_users_containers_container_id ON users_containers(container_id);
 CREATE INDEX idx_container_ports_container_id ON container_ports(container_id);
-CREATE INDEX idx_ip_port_ranges_ip_id ON ip_port_ranges(ip_id);

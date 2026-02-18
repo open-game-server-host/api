@@ -1,10 +1,10 @@
-import { Ip, IpData } from "../../interfaces/ip";
+import { Ip, IpData } from "@open-game-server-host/backend-lib";
 import { IpDb } from "../ipDb";
 import { LocalDb } from "./localDb";
 
 export class LocalIpDb extends LocalDb implements IpDb {
     constructor() {
-        super("localdb/ips");
+        super("ips");
     }
 
     async get(id: string): Promise<Ip> {
@@ -21,6 +21,11 @@ export class LocalIpDb extends LocalDb implements IpDb {
     }
 
     async list(): Promise<Ip[]> {
-        throw new Error("Method not implemented.");
+        console.log(`ip list`);
+        const ips: Ip[] = [];
+        for (const id of this.enumerateJsonFiles()) {
+            ips.push(await this.get(id));
+        }
+        return ips;
     }
 }

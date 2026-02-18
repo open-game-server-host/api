@@ -1,4 +1,4 @@
-import { Ip, IpData } from "../../interfaces/ip";
+import { Ip, IpData } from "@open-game-server-host/backend-lib";
 import { IpDb } from "../ipDb";
 
 export class PostgresIpDb implements IpDb {
