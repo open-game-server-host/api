@@ -5,19 +5,19 @@ import { DATABASE } from "../../db/db";
 export const daemonHttpRouter = Router();
 
 daemonHttpRouter.post("/", async (req: BodyRequest<DaemonData>, res) => {
-    const daemon = await DATABASE.daemon.create(req.body);
+    const daemon = await DATABASE.createDaemon(req.body);
     respond(res, daemon);
 });
 
 daemonHttpRouter.get("/:daemonId", async (req, res) => {
     const daemonId = req.params.daemonId;
-    const daemon = await DATABASE.daemon.get(daemonId);
+    const daemon = await DATABASE.getDaemon(daemonId);
     respond(res, daemon);
 });
 
 daemonHttpRouter.post("/:daemonId/containers", async (req, res) => {
     const daemonId = req.params.daemonId;
-    const containers = await DATABASE.container.listByDaemon(daemonId);
+    const containers = await DATABASE.listContainersByDaemon(daemonId);
     respond(res, containers);
 });
 

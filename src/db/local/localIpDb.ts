@@ -1,30 +1,25 @@
 import { Ip, IpData } from "@open-game-server-host/backend-lib";
-import { IpDb } from "../ipDb";
+import { Database } from "../db";
 import { LocalDb } from "./localDb";
 
-export class LocalIpDb extends LocalDb implements IpDb {
-    constructor() {
-        super("ips");
+export class LocalIpDb extends LocalDb implements Partial<Database> {
+    async getIp(id: string): Promise<Ip> {
+        return this.readJsonFile<Ip>("ip", id);
     }
 
-    async get(id: string): Promise<Ip> {
-        return this.readJsonFile<Ip>(id);
-    }
-
-    async create(data: IpData): Promise<Ip> {
-        const id = this.createUniqueId();
-        this.writeJsonFile<Ip>(id, {
+    async createIp(data: IpData): Promise<Ip> {
+        const id = this.createUniqueId("ip");
+        this.writeJsonFile<Ip>("ip", id, {
             id,
             ...data
         });
-        return this.get(id);
+        return this.getIp(id);
     }
 
-    async list(): Promise<Ip[]> {
-        console.log(`ip list`);
+    async listIps(): Promise<Ip[]> {
         const ips: Ip[] = [];
-        for (const id of this.enumerateJsonFiles()) {
-            ips.push(await this.get(id));
+        for (const id of this.enumerateJsonFiles("ip")) {
+            ips.push(await this.getIp(id));
         }
         return ips;
     }
