@@ -12,7 +12,7 @@ export const segmentReserveMethod = parseEnvironmentVariables([
     }
 ]).get("OGSH_SEGMENT_RESERVE_METHOD")! as SegmentReserveMethod;
 
-export async function sendInternalDaemonRequest(host: Daemon | DaemonData | RawDaemon | string, path: string, body: any) {
+export async function sendInternalDaemonRequest(host: Daemon | DaemonData | RawDaemon | string, path: string, body: any = {}) {
     let url: string;
     if (typeof host === "string") {
         url = host;
