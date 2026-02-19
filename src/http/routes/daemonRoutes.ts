@@ -17,7 +17,7 @@ daemonHttpRouter.get("/:daemonId", async (req, res) => {
 
 daemonHttpRouter.post("/:daemonId/containers", async (req, res) => {
     const daemonId = req.params.daemonId;
-    const containers = await DATABASE.listContainersByDaemon(daemonId);
+    const containers = await DATABASE.listActiveContainersByDaemon(daemonId);
     respond(res, containers);
 });
 

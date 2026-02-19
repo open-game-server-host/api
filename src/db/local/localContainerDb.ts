@@ -1,4 +1,5 @@
 import { Container, ContainerPort, CreateContainerData, Daemon, getVariant, OGSHError, RawDaemon } from "@open-game-server-host/backend-lib";
+import { isContainerTerminated } from "../../container/container";
 import { SegmentReserveMethod, segmentReserveMethod } from "../../daemon/daemon";
 import { DATABASE, Database } from "../db";
 import { LocalDb } from "./localDb";
@@ -111,7 +112,7 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
         const variant = await getVariant(data.app_id, data.variant_id);
         const ports: ContainerPort[] = [];
         const portsInUse: number[] = [];
-        for (const container of await this.listContainersByDaemon(daemon.id)) {
+        for (const container of await this.listActiveContainersByDaemon(daemon.id)) {
             container.ports.forEach(ports => portsInUse.push(ports.host_port));
         }
         const range = daemon.port_range_end - daemon.port_range_start;
@@ -147,22 +148,45 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
         return this.getContainer(id);
     }
 
-    async deleteContainer(id: string): Promise<void> {
-        // TODO restore segments to daemon
-        this.deleteJsonFile("container", id);
+    async terminateContainer(id: string): Promise<Container> {
+        const container = await this.getContainer(id);
+        const now = Date.now();
+        const remainingTime = (now - container.created_at) / (container.contract_length_days * 86_400_000);
+        this.writeJsonFile<RawContainer>("container", id, {
+            app_id: container.app_id,
+            contract_length_days: container.contract_length_days,
+            created_at: container.created_at,
+            daemon_id: container.daemon.id,
+            free: container.free,
+            id,
+            locked: container.locked,
+            name: container.name,
+            ports: container.ports,
+            runtime: container.runtime,
+            segments: container.segments,
+            user_id: container.user_id,
+            variant_id: container.variant_id,
+            version_id: container.version_id,
+            terminate_at: now + remainingTime
+        });
+        return container;
     }
 
-    async listContainersByDaemon(daemonId: string): Promise<Container[]> {
+    async listActiveContainersByDaemon(daemonId: string): Promise<Container[]> {
         const containers: Container[] = [];
-        for (const raw of this.listJsonFiles<RawContainer>("container").filter(c => c.data.daemon_id === daemonId)) {
+        for (const raw of this.listJsonFiles<RawContainer>("container")
+        .filter(c => c.data.daemon_id === daemonId)
+        .filter(c => !isContainerTerminated(c.data))) {
             containers.push(await this.getContainer(raw.id));
         }
         return containers;
     }
 
-    async listContainersByUser(uid: string): Promise<Container[]> {
+    async listActiveContainersByUser(uid: string): Promise<Container[]> {
         const containers: Container[] = [];
-        for (const raw of this.listJsonFiles<RawContainer>("container").filter(c => c.data.user_id === uid)) {
+        for (const raw of this.listJsonFiles<RawContainer>("container")
+        .filter(c => c.data.user_id === uid)
+        .filter(c => !isContainerTerminated(c.data))) {
             containers.push(await this.getContainer(raw.id));
         }
         return containers;

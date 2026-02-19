@@ -39,8 +39,8 @@ containerHttpRouter.get("/:containerId", parseContainerId, async (req: Container
 });
 
 containerHttpRouter.delete("/:containerId", parseContainerId, async (req: ContainerRequest, res) => {
-    // TODO update database record
-    // TODO send internal request
+    const container = await DATABASE.terminateContainer(req.params.containerId);
+    await sendInternalDaemonRequest(container.daemon, `/v1/internal/container/${container.id}/terminate`);
     throw new OGSHError("general/unspecified", `not implemented`);
 });
 
@@ -134,5 +134,5 @@ containerHttpRouter.post("/:containerId/command", [
 containerHttpRouter.post("/:containerId/config", async (req, res) => {
     // Note that to get config data, you must use the files endpoints
     // TODO send internal request
-    respond(res);
+    throw new OGSHError("general/unspecified", `not implemented`);
 });

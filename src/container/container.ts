@@ -1,6 +1,6 @@
-import { Container, getVersion, OGSHError } from "@open-game-server-host/backend-lib";
-import { DATABASE } from "../db/db";
+import { Container, ContainerData, getVersion, OGSHError, RawContainer } from "@open-game-server-host/backend-lib";
 import { sendInternalDaemonRequest } from "../daemon/daemon";
+import { DATABASE } from "../db/db";
 
 export async function createContainer(userId: string, regionId: string, appId: string, variantId: string, versionId: string, segments: number, name: string): Promise<Container> {
     const version = await getVersion(appId, variantId, versionId);
@@ -30,4 +30,8 @@ export async function createContainer(userId: string, regionId: string, appId: s
     });
 
     return container;
+}
+
+export function isContainerTerminated(container: Container | RawContainer | ContainerData): boolean {
+    return (container.terminate_at || Number.MAX_SAFE_INTEGER) <= Date.now();
 }

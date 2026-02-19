@@ -13,9 +13,9 @@ export type DbType =
 export interface Database {
     getContainer(containerId: string): Promise<Container>;
     createContainer(data: CreateContainerData): Promise<Container>;
-    deleteContainer(containerId: string): Promise<void>;
-    listContainersByUser(uid: string): Promise<Container[]>; // TOOD paginate
-    listContainersByDaemon(daemonId: string): Promise<Container[]>; // TODO paginate
+    terminateContainer(containerId: string): Promise<Container>;
+    listActiveContainersByUser(uid: string): Promise<Container[]>; // TOOD paginate
+    listActiveContainersByDaemon(daemonId: string): Promise<Container[]>; // TODO paginate
     // logContainerAction(containerId: string, action: string, data: string): Promise<void>;
 
     getDaemon(daemonId: string): Promise<Daemon>;
@@ -49,10 +49,10 @@ function createLocalDb(): Database {
 
     return {
         createContainer: containerDb.createContainer.bind(containerDb),
-        deleteContainer: containerDb.deleteContainer.bind(containerDb),
+        terminateContainer: containerDb.terminateContainer.bind(containerDb),
         getContainer: containerDb.getContainer.bind(containerDb),
-        listContainersByDaemon: containerDb.listContainersByDaemon.bind(containerDb),
-        listContainersByUser: containerDb.listContainersByUser.bind(containerDb),
+        listActiveContainersByDaemon: containerDb.listActiveContainersByDaemon.bind(containerDb),
+        listActiveContainersByUser: containerDb.listActiveContainersByUser.bind(containerDb),
 
         getDaemon: daemonDb.getDaemon.bind(daemonDb),
         createDaemon: daemonDb.createDaemon.bind(daemonDb),
@@ -75,10 +75,10 @@ function createPostgresDb(): Database {
 
     return {
         createContainer: notImplemented<Container>,
-        deleteContainer: notImplemented,
+        terminateContainer: notImplemented<Container>,
         getContainer: notImplemented<Container>,
-        listContainersByDaemon: notImplemented<Container[]>,
-        listContainersByUser: notImplemented<Container[]>,
+        listActiveContainersByDaemon: notImplemented<Container[]>,
+        listActiveContainersByUser: notImplemented<Container[]>,
 
         getDaemon: notImplemented<Daemon>,
         createDaemon: notImplemented<Daemon>,
