@@ -1,15 +1,19 @@
-import { Router } from "express";
+import { respond, UserLocals } from "@open-game-server-host/backend-lib";
+import { Response, Router } from "express";
+import { DATABASE } from "../../db/db.js";
 
-export const userHttpRouter = Router();
+export const meHttpRouter = Router();
 
-userHttpRouter.get("/", async (req, res) => {
-    // TODO authenticate user to get uid
+type UserResponse = Response<any, UserLocals>;
+
+meHttpRouter.get("/", async (req, res: UserResponse) => {
+    respond(res, await DATABASE.getUser(res.locals.userId));
 });
 
-userHttpRouter.post("/", async (req, res) => {
-    // TODO user has been created in firebase, client then calls this endpoint to create the user data on our end
+meHttpRouter.post("/", async (req, res: UserResponse) => {
+    respond(res, await DATABASE.createUser(res.locals.userId));
 });
 
-userHttpRouter.get("/containers", async (req, res) => {
-    
+meHttpRouter.get("/containers", async (req, res: UserResponse) => {
+    respond(res, await DATABASE.listActiveContainersByUser(res.locals.userId));
 });

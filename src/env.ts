@@ -1,5 +1,5 @@
 import { parseEnvironmentVariables } from "@open-game-server-host/backend-lib";
-import { DbType } from "./db/db";
+import { DbType } from "./db/db.js";
 
 const dbKey = "OGSH_DB";
 

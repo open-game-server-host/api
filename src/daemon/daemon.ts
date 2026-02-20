@@ -1,22 +1,33 @@
-import { Daemon, DaemonData, OGSHError, parseEnvironmentVariables, RawDaemon } from "@open-game-server-host/backend-lib";
+import { Daemon, OGSHError, parseEnvironmentVariables } from "@open-game-server-host/backend-lib";
+import crypto from "crypto";
 
 export type SegmentReserveMethod = 
     | "fifo"
     | "balanced"
 ;
 
-export const segmentReserveMethod = parseEnvironmentVariables([
+const parsedEnv = parseEnvironmentVariables([
     {
         key: "OGSH_SEGMENT_RESERVE_METHOD",
         defaultValue: "fifo"
+    },
+    {
+        key: "OGSH_DAEMON_SIGNING_KEY",
+        defaultValue: "USE A DIFFERENT KEY IN PRODUCTION"
     }
-]).get("OGSH_SEGMENT_RESERVE_METHOD")! as SegmentReserveMethod;
+]);
 
-export async function sendInternalDaemonRequest(host: Daemon | DaemonData | RawDaemon | string, path: string, body: any = {}) {
+export const segmentReserveMethod = parsedEnv.get("OGSH_SEGMENT_RESERVE_METHOD")! as SegmentReserveMethod
+const daemonSigningKey = new TextEncoder().encode(parsedEnv.get("OGSH_DAEMON_SIGNING_KEY")!);
+
+export async function sendInternalDaemonRequest(host: Daemon | string, path: string, body: any = {}) {
     let url: string;
     if (typeof host === "string") {
         url = host;
     } else {
+        if (!host.url) {
+            throw new OGSHError("general/unspecified", `tried to send request to daemon id '${host.id}' but setup is incomplete`);
+        }
         url = host.url;
     }
 
@@ -48,4 +59,28 @@ export async function sendInternalDaemonRequest(host: Daemon | DaemonData | RawD
         }
         throw new OGSHError("general/unspecified", `failed to send internal daemon request to '${url}', status: ${response.status}, status text: ${response.statusText}, body: ${body}`);
     }
+}
+
+function generateRawApiKey(): string {
+    return crypto.randomBytes(32).toString("hex");
+}
+
+function generateApiKeyHash(key: string): string {
+    return crypto.createHmac("sha256", daemonSigningKey).update(key).digest("hex");
+}
+
+interface DaemonApikey {
+    apiKey: string;
+    hash: string;
+}
+export function generateDaemonApiKey(): DaemonApikey {
+    const apiKey = generateRawApiKey();
+    return {
+        apiKey,
+        hash: generateApiKeyHash(apiKey)
+    }
+}
+
+export function isDaemonApiKeyValid(providedApiKey: string, storedHash: string): boolean {
+    return generateApiKeyHash(providedApiKey) === storedHash;
 }

@@ -1,9 +1,14 @@
-import { Container, CreateContainerData, Daemon, DaemonData, Ip, IpData, OGSHError, Region, RegionData } from "@open-game-server-host/backend-lib";
-import { getDbType } from "../env";
-import { LocalContainerDb } from "./local/localContainerDb";
-import { LocalDaemonDb } from "./local/localDaemonDb";
-import { LocalIpDb } from "./local/localIpDb";
-import { LocalRegionDb } from "./local/localRegionDb";
+import { Container, Daemon, Ip, OGSHError, Region, User } from "@open-game-server-host/backend-lib";
+import { getDbType } from "../env.js";
+import { CreateContainerData } from "../interfaces/container.js";
+import { SetupDaemonData, SetupIncompleteDaemon } from "../interfaces/daemon.js";
+import { CreateIpData } from "../interfaces/ip.js";
+import { CreateRegionData } from "../interfaces/region.js";
+import { LocalContainerDb } from "./local/localContainerDb.js";
+import { LocalDaemonDb } from "./local/localDaemonDb.js";
+import { LocalIpDb } from "./local/localIpDb.js";
+import { LocalRegionDb } from "./local/localRegionDb.js";
+import { LocalUserDb } from "./local/localUserDb.js";
 
 export type DbType =
     | "local"
@@ -19,16 +24,22 @@ export interface Database {
     // logContainerAction(containerId: string, action: string, data: string): Promise<void>;
 
     getDaemon(daemonId: string): Promise<Daemon>;
-    createDaemon(data: DaemonData): Promise<Daemon>;
-    listDaemonsByRegion(regionId: string): Promise<Daemon[]>;
+    createDaemon(): Promise<SetupIncompleteDaemon & { api_key: string }>;
+    setupDaemon(daemonId: string, data: SetupDaemonData): Promise<Daemon>;
+    listDaemonsByRegion(regionId: string): Promise<Daemon[]>; // TODO paginate
+    listSetupIncompleteDaemons(): Promise<SetupIncompleteDaemon[]>; // TODO paginate
 
     getIp(ipId: string): Promise<Ip>;
-    createIp(data: IpData): Promise<Ip>;
+    createIp(data: CreateIpData): Promise<Ip>;
     listIps(): Promise<Ip[]>; // TODO paginate
 
     getRegion(ipId: string): Promise<Region>;
-    createRegion(data: RegionData): Promise<Region>;
+    createRegion(data: CreateRegionData): Promise<Region>;
     listRegions(): Promise<Region[]>;
+
+    doesUserExist(id: string): Promise<boolean>;
+    getUser(authUid: string): Promise<User>;
+    createUser(authUid: string, ): Promise<User>;
 }
 
 export const DATABASE = createDb();
@@ -46,6 +57,7 @@ function createLocalDb(): Database {
     const daemonDb = new LocalDaemonDb();
     const ipDb = new LocalIpDb();
     const regionDb = new LocalRegionDb();
+    const userDb = new LocalUserDb();
 
     return {
         createContainer: containerDb.createContainer.bind(containerDb),
@@ -53,10 +65,12 @@ function createLocalDb(): Database {
         getContainer: containerDb.getContainer.bind(containerDb),
         listActiveContainersByDaemon: containerDb.listActiveContainersByDaemon.bind(containerDb),
         listActiveContainersByUser: containerDb.listActiveContainersByUser.bind(containerDb),
-
+        
         getDaemon: daemonDb.getDaemon.bind(daemonDb),
         createDaemon: daemonDb.createDaemon.bind(daemonDb),
+        setupDaemon: daemonDb.setupDaemon.bind(daemonDb),
         listDaemonsByRegion: daemonDb.listDaemonsByRegion.bind(daemonDb),
+        listSetupIncompleteDaemons: daemonDb.listSetupIncompleteDaemons.bind(daemonDb),
 
         getIp: ipDb.getIp.bind(ipDb),
         createIp: ipDb.createIp.bind(ipDb),
@@ -64,7 +78,11 @@ function createLocalDb(): Database {
 
         getRegion: regionDb.getRegion.bind(regionDb),
         createRegion: regionDb.createRegion.bind(regionDb),
-        listRegions: regionDb.listRegions.bind(regionDb)
+        listRegions: regionDb.listRegions.bind(regionDb),
+
+        doesUserExist: userDb.doesUserExist.bind(userDb),
+        getUser: userDb.getUser.bind(userDb),
+        createUser: userDb.createUser.bind(userDb)
     }
 }
 
@@ -79,9 +97,11 @@ function createPostgresDb(): Database {
         getContainer: notImplemented<Container>,
         listActiveContainersByDaemon: notImplemented<Container[]>,
         listActiveContainersByUser: notImplemented<Container[]>,
+        listSetupIncompleteDaemons: notImplemented<SetupIncompleteDaemon[]>,
 
         getDaemon: notImplemented<Daemon>,
-        createDaemon: notImplemented<Daemon>,
+        createDaemon: notImplemented<Daemon & { api_key: string }>,
+        setupDaemon: notImplemented<Daemon>,
         listDaemonsByRegion: notImplemented<Daemon[]>,
 
         getIp: notImplemented<Ip>,
@@ -90,6 +110,10 @@ function createPostgresDb(): Database {
 
         getRegion: notImplemented<Region>,
         createRegion: notImplemented<Region>,
-        listRegions: notImplemented<Region[]>
+        listRegions: notImplemented<Region[]>,
+
+        doesUserExist: notImplemented<boolean>,
+        getUser: notImplemented<User>,
+        createUser: notImplemented<User>
     }
 }

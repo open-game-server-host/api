@@ -1,10 +1,5 @@
 import { OGSHError } from "@open-game-server-host/backend-lib";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { Database } from "../db";
-import { LocalContainerDb } from "./localContainerDb";
-import { LocalDaemonDb } from "./localDaemonDb";
-import { LocalIpDb } from "./localIpDb";
-import { LocalRegionDb } from "./localRegionDb";
 
 export interface JsonFile<T> {
     id: string;
@@ -16,6 +11,7 @@ export type LocalDbFolder =
     | "daemon"
     | "ip"
     | "region"
+    | "user"
 ;
 
 const BASE_PATH = "localdb";
@@ -37,7 +33,7 @@ export abstract class LocalDb {
         return `${this.getFolderPath(folder)}/${id}`;
     }
 
-    private jsonFileExists(folder: LocalDbFolder, id: string): boolean {
+    protected jsonFileExists(folder: LocalDbFolder, id: string): boolean {
         const path = this.getJsonFilePath(folder, id);
         return existsSync(path);
     }

@@ -1,6 +1,7 @@
-import { Container, ContainerData, getVersion, OGSHError, RawContainer } from "@open-game-server-host/backend-lib";
-import { sendInternalDaemonRequest } from "../daemon/daemon";
-import { DATABASE } from "../db/db";
+import { Container, getVersion, OGSHError } from "@open-game-server-host/backend-lib";
+import { sendInternalDaemonRequest } from "../daemon/daemon.js";
+import { DATABASE } from "../db/db.js";
+import { ContainerLocalDbFile } from "../db/local/localContainerDb.js";
 
 export async function createContainer(userId: string, regionId: string, appId: string, variantId: string, versionId: string, segments: number, name: string): Promise<Container> {
     const version = await getVersion(appId, variantId, versionId);
@@ -16,7 +17,7 @@ export async function createContainer(userId: string, regionId: string, appId: s
         free: false,
         name,
         region_id: regionId,
-        runtime: version.default_docker_image,
+        runtime: version.default_runtime,
         user_id: userId
     });
 
@@ -32,6 +33,6 @@ export async function createContainer(userId: string, regionId: string, appId: s
     return container;
 }
 
-export function isContainerTerminated(container: Container | RawContainer | ContainerData): boolean {
+export function isContainerTerminated(container: Container | ContainerLocalDbFile): boolean {
     return (container.terminate_at || Number.MAX_SAFE_INTEGER) <= Date.now();
 }

@@ -1,9 +1,9 @@
 import { BodyRequest, getVersion, OGSHError, respond } from "@open-game-server-host/backend-lib";
 import { Request, Response, Router } from "express";
 import { body, param } from "express-validator";
-import { createContainer } from "../../container/container";
-import { sendInternalDaemonRequest } from "../../daemon/daemon";
-import { DATABASE } from "../../db/db";
+import { createContainer } from "../../container/container.js";
+import { sendInternalDaemonRequest } from "../../daemon/daemon.js";
+import { DATABASE } from "../../db/db.js";
 
 export const containerHttpRouter = Router();
 

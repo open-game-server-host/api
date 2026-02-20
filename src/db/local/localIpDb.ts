@@ -1,13 +1,14 @@
-import { Ip, IpData } from "@open-game-server-host/backend-lib";
-import { Database } from "../db";
-import { LocalDb } from "./localDb";
+import { Ip } from "@open-game-server-host/backend-lib";
+import { CreateIpData } from "../../interfaces/ip.js";
+import { Database } from "../db.js";
+import { LocalDb } from "./localDb.js";
 
 export class LocalIpDb extends LocalDb implements Partial<Database> {
     async getIp(id: string): Promise<Ip> {
         return this.readJsonFile<Ip>("ip", id);
     }
 
-    async createIp(data: IpData): Promise<Ip> {
+    async createIp(data: CreateIpData): Promise<Ip> {
         const id = this.createUniqueId("ip");
         this.writeJsonFile<Ip>("ip", id, {
             id,
