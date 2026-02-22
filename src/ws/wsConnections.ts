@@ -33,6 +33,7 @@ export async function sendMessageToDaemon(daemonId: string, route: string, actio
     }
     ws.send(JSON.stringify({
         route,
+        action,
         body
     }));
 }
