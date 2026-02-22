@@ -1,9 +1,11 @@
 import { expressErrorHandler, Logger, userAuthMiddleware } from "@open-game-server-host/backend-lib";
 import express from "express";
-import { appHttpRouter } from "./routes/appRoutes.js";
-import { containerHttpRouter } from "./routes/containerRoutes.js";
-import { daemonHttpRouter } from "./routes/daemonRoutes.js";
-import { meHttpRouter } from "./routes/userRoutes.js";
+import { createServer } from "http";
+import { wsServer } from "../ws/wsServer.js";
+import { appHttpRouter } from "./routes/appHttpRoutes.js";
+import { containerHttpRouter } from "./routes/containerHttpRoutes.js";
+import { daemonHttpRouter } from "./routes/daemonHttpRoutes.js";
+import { meHttpRouter } from "./routes/userHttpRoutes.js";
 
 export async function initHttpServer(logger: Logger) {
     const router = express();
@@ -17,9 +19,16 @@ export async function initHttpServer(logger: Logger) {
 
     router.use(expressErrorHandler);
 
+    const httpServer = createServer(router);
+    httpServer.on("upgrade", async (req, socket, head) => {
+        wsServer.handleUpgrade(req, socket, head, (ws) => {
+            wsServer.emit("connection", ws, req);
+        });
+    });
+
     const port = 8080;
     await new Promise<void>(res => {
-        router.listen(port, () => {
+        httpServer.listen(port, () => {
             logger.info(`Started http server on port ${port}`);
             res();
         });

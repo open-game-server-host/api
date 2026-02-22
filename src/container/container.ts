@@ -1,7 +1,7 @@
 import { Container, getVersion, OGSHError } from "@open-game-server-host/backend-lib";
-import { sendInternalDaemonRequest } from "../daemon/daemon.js";
 import { DATABASE } from "../db/db.js";
 import { ContainerLocalDbFile } from "../db/local/localContainerDb.js";
+import { registerContainer } from "../ws/actions/containerWsActions.js";
 
 export async function createContainer(userId: string, regionId: string, appId: string, variantId: string, versionId: string, segments: number, name: string): Promise<Container> {
     const version = await getVersion(appId, variantId, versionId);
@@ -21,12 +21,12 @@ export async function createContainer(userId: string, regionId: string, appId: s
         user_id: userId
     });
 
-    await sendInternalDaemonRequest(container.daemon, `/v1/internal/container/${container.id}`, {
-        app_id: appId,
-        variant_id: variantId,
-        version_id: versionId,
+    registerContainer(container.daemon.id, {
+        containerId: container.id,
+        appId,
+        variantId,
+        versionId,
         segments,
-        runtime: container.runtime,
         ports: container.ports
     });
 

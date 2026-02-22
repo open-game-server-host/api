@@ -2,8 +2,8 @@ import { BodyRequest, getVersion, OGSHError, respond } from "@open-game-server-h
 import { Request, Response, Router } from "express";
 import { body, param } from "express-validator";
 import { createContainer } from "../../container/container.js";
-import { sendInternalDaemonRequest } from "../../daemon/daemon.js";
 import { DATABASE } from "../../db/db.js";
+import { installContainer, killContainer, removeContainerFromDaemon, restartContainer, sendCommandToContainer, startContainer, stopContainer } from "../../ws/actions/containerWsActions.js";
 
 export const containerHttpRouter = Router();
 
@@ -40,7 +40,9 @@ containerHttpRouter.get("/:containerId", parseContainerId, async (req: Container
 
 containerHttpRouter.delete("/:containerId", parseContainerId, async (req: ContainerRequest, res) => {
     const container = await DATABASE.terminateContainer(req.params.containerId);
-    await sendInternalDaemonRequest(container.daemon, `/v1/internal/container/${container.id}/terminate`);
+    removeContainerFromDaemon(container.daemon.id, {
+        containerId: container.id
+    });
     throw new OGSHError("general/unspecified", `not implemented`);
 });
 
@@ -55,19 +57,25 @@ containerHttpRouter.post("/:containerId/image", parseContainerId, async (req: Co
 });
 
 interface ContainerInstallBody {
-    app_id: string;
-    variant_id: string;
-    version_id: string;
+    appId: string;
+    variantId: string;
+    versionId: string;
 }
 containerHttpRouter.post("/:containerId/install", parseContainerId, [
-    body("app_id").isString(),
-    body("variant_id").isString(),
-    body("version_id").isString()
+    body("appId").isString(),
+    body("variantId").isString(),
+    body("versionId").isString()
 ], async (req: ContainerRequest<ContainerInstallBody>, res: Response) => {
-    const { app_id, variant_id, version_id } = req.body;
-    await getVersion(app_id, variant_id, version_id);
+    const { appId, variantId, versionId } = req.body;
+    await getVersion(appId, variantId, versionId);
+    const container = await DATABASE.getContainer(req.params.containerId);
     // TODO update database record
-    // TODO send internal request
+    installContainer(container.daemon.id, {
+        containerId: container.id,
+        appId,
+        variantId,
+        versionId
+    });
     respond(res);
 });
 
@@ -98,25 +106,33 @@ containerHttpRouter.post("/:containerId/backup", async (req, res) => {
 
 containerHttpRouter.post("/:containerId/start", async (req, res) => {
     const container = await DATABASE.getContainer(req.params.containerId);
-    await sendInternalDaemonRequest(container.daemon, `/v1/internal/container/${container.id}/start`);
+    startContainer(container.daemon.id, {
+        containerId: container.id
+    })
     respond(res);
 });
 
 containerHttpRouter.post("/:containerId/stop", async (req, res) => {
     const container = await DATABASE.getContainer(req.params.containerId);
-    await sendInternalDaemonRequest(container.daemon, `/v1/internal/container/${container.id}/stop`);
+    stopContainer(container.daemon.id, {
+        containerId: container.id
+    });
     respond(res);
 });
 
 containerHttpRouter.post("/:containerId/restart", async (req, res) => {
     const container = await DATABASE.getContainer(req.params.containerId);
-    await sendInternalDaemonRequest(container.daemon, `/v1/internal/container/${container.id}/restart`);
+    restartContainer(container.daemon.id, {
+        containerId: container.id
+    });
     respond(res);
 });
 
 containerHttpRouter.post("/:containerId/kill", async (req, res) => {
     const container = await DATABASE.getContainer(req.params.containerId);
-    await sendInternalDaemonRequest(container.daemon, `/v1/internal/container/${container.id}/kill`);
+    killContainer(container.daemon.id, {
+        containerId: container.id
+    });
     respond(res);
 });
 
@@ -127,7 +143,10 @@ containerHttpRouter.post("/:containerId/command", [
     body("command").isString()
 ], async (req: BodyRequest<CommandBody>, res: Response) => {
     const container = await DATABASE.getContainer(req.params.containerId);
-    await sendInternalDaemonRequest(container.daemon, `/v1/internal/container/${container.id}/command`, req.body);
+    sendCommandToContainer(container.daemon.id, {
+        containerId: container.id,
+        command: req.body.command
+    })
     respond(res);
 });
 
