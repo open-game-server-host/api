@@ -25,13 +25,16 @@ export function unregisterWsConnection(connectionId: string) {
 
 // TODO distributed websockets across all API instances using redis or similar - not sure how file uploads/downloads are going to work with that though
 
-export async function sendMessageToDaemon(daemonId: string, msg: string) {
+export async function sendMessageToDaemon(daemonId: string, route: string, action: string, body: any) {
     const connectionId = getConnectionId("daemon", daemonId);
     const ws = connections.get(connectionId);
     if (!ws) {
         throw new OGSHError("general/unspecified", `daemon id '${daemonId}' websocket not connected`);
     }
-    ws.send(msg);
+    ws.send(JSON.stringify({
+        route,
+        body
+    }));
 }
 
 export async function sendMessageToUser(userId: string, msg: string) {
