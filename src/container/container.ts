@@ -27,7 +27,8 @@ export async function createContainer(userId: string, regionId: string, appId: s
         variantId,
         versionId,
         segments,
-        ports: container.ports
+        ipv4Ports: container.ipv4_ports,
+        ipv6Ports: container.ipv6_ports
     });
 
     return container;

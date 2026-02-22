@@ -14,12 +14,13 @@ export interface SetupDaemonData {
     cpu_name: string;
     ip_id: string;
     os: string;
-    port_range_start: number;
-    port_range_end: number;
+    ipv4_port_range_start?: number;
+    ipv4_port_range_end?: number;
+    ipv6_port_range_start?: number;
+    ipv6_port_range_end?: number;
     region_id: string;
     segments: number;
-    segments_available: number;
     sftp_port: number;
-    url: string;
-    ws_url: string;
+    ipv4?: string;
+    ipv6?: string;
 }

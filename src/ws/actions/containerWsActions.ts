@@ -25,7 +25,8 @@ interface RegisterData extends ContainerIdData {
     appId: string;
     variantId: string;
     versionId: string;
-    ports: ContainerPort[];
+    ipv4Ports: ContainerPort[];
+    ipv6Ports: ContainerPort[];
     segments: number;
 }
 export function registerContainer(daemonId: string, data: RegisterData) {

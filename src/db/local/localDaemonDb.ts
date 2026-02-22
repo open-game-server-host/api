@@ -1,4 +1,4 @@
-import { Daemon, OGSHError } from "@open-game-server-host/backend-lib";
+import { Daemon, Ip, OGSHError } from "@open-game-server-host/backend-lib";
 import { generateDaemonApiKey } from "../../daemon/daemon.js";
 import { SetupDaemonData, SetupIncompleteDaemon } from "../../interfaces/daemon.js";
 import { DATABASE, Database } from "../db.js";
@@ -11,53 +11,43 @@ export interface DaemonLocalDbFile {
     setup_complete: boolean;
     cpu_arch?: string;
     cpu_name?: string;
-    ip_id?: string;
+    ipv4_id?: string;
+    ipv6_id?: string;
     os?: string;
-    port_range_start?: number;
-    port_range_end?: number;
+    ipv4_port_range_start?: number;
+    ipv4_port_range_end?: number;
+    ipv6_port_range_start?: number;
+    ipv6_port_range_end?: number;
     region_id?: string;
     segments?: number;
     segments_available?: number;
     sftp_port?: number;
-    url?: string;
-    ws_url?: string;
 }
 
 export class LocalDaemonDb extends LocalDb implements Partial<Database> {
     async getDaemon(id: string): Promise<Daemon> {
         const raw = this.readJsonFile<DaemonLocalDbFile>("daemon", id);
-        if (!raw.cpu_arch
-            || !raw.cpu_name
-            || !raw.ip_id
-            || !raw.os
-            || !raw.port_range_end
-            || !raw.port_range_start
-            || !raw.region_id
-            || !raw.segments
-            || !raw.segments_available
-            || !raw.sftp_port
-            || !raw.url
-            || !raw.ws_url
-        ) {
+        if (!raw.setup_complete) {
             throw new OGSHError("general/unspecified", `tried to get info for an incomplete daemon '${id}'`);
         }
         return {
             api_key_hash: raw.api_key_hash,
-            cpu_arch: raw.cpu_arch,
-            cpu_name: raw.cpu_name,
+            cpu_arch: raw.cpu_arch!,
+            cpu_name: raw.cpu_name!,
             created_at: raw.created_at,
             id,
-            ip: await DATABASE.getIp(raw.ip_id),
-            os: raw.os,
-            port_range_end: raw.port_range_end,
-            port_range_start: raw.port_range_start,
-            region: await DATABASE.getRegion(raw.region_id),
-            segments: raw.segments,
-            segments_available: raw.segments_available,
+            ipv4: raw.ipv4_id ? await DATABASE.getIpv4(raw.ipv4_id) : undefined,
+            ipv6: raw.ipv6_id ? await DATABASE.getIpv6(raw.ipv6_id) : undefined,
+            os: raw.os!,
+            ipv4_port_range_start: raw.ipv4_port_range_start,
+            ipv4_port_range_end: raw.ipv4_port_range_end,
+            ipv6_port_range_start: raw.ipv6_port_range_start,
+            ipv6_port_range_end: raw.ipv6_port_range_end,
+            region: await DATABASE.getRegion(raw.region_id!),
+            segments: raw.segments!,
+            segments_available: raw.segments_available!,
             setup_complete: raw.setup_complete,
-            sftp_port: raw.sftp_port,
-            url: raw.url,
-            ws_url: raw.ws_url
+            sftp_port: raw.sftp_port!
         }
     }
 
@@ -81,11 +71,52 @@ export class LocalDaemonDb extends LocalDb implements Partial<Database> {
 
     async setupDaemon(daemonId: string, data: SetupDaemonData): Promise<Daemon> {
         // TODO validate data
+        if (!data.ipv4 && !data.ipv6) {
+            throw new OGSHError("general/unspecified", `must specify 'ipv4' or 'ipv6' when setting up a daemon`);
+        }
+        let ipv4Id: string | undefined;
+        let ipv6Id: string | undefined;
+        if (data.ipv4) {
+            // TODO validate ipv4
+            try {
+                ipv4Id = (await DATABASE.getIpv4ByIp(data.ipv4)).id;
+            } catch (error) {
+                ipv4Id = this.createUniqueId("ipv4");
+                this.writeJsonFile<Ip>("ipv4", ipv4Id, {
+                    id: ipv4Id,
+                    ip: data.ipv4
+                });
+            }
+        }
+        if (data.ipv6) {
+            // TODO validate ipv6
+            try {
+                ipv6Id = (await DATABASE.getIpv6ByIp(data.ipv6)).id;
+            } catch (error) {
+                ipv6Id = this.createUniqueId("ipv6");
+                this.writeJsonFile<Ip>("ipv6", ipv6Id, {
+                    id: ipv6Id,
+                    ip: data.ipv6
+                });
+            }
+        }
         const raw = this.readJsonFile<DaemonLocalDbFile>("daemon", daemonId);
         this.writeJsonFile<DaemonLocalDbFile>("daemon", daemonId, {
             ...raw,
             setup_complete: true,
-            ...data
+            cpu_arch: data.cpu_arch,
+            cpu_name: data.cpu_name,
+            ipv4_id: ipv4Id,
+            ipv6_id: ipv6Id,
+            os: data.os,
+            ipv4_port_range_start: data.ipv4_port_range_start,
+            ipv4_port_range_end: data.ipv4_port_range_end,
+            ipv6_port_range_start: data.ipv6_port_range_start,
+            ipv6_port_range_end: data.ipv6_port_range_end,
+            region_id: data.region_id,
+            segments: data.segments,
+            segments_available: data.segments,
+            sftp_port: data.sftp_port
         });
         return this.getDaemon(daemonId);
     }

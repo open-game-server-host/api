@@ -9,7 +9,8 @@ export interface JsonFile<T> {
 export type LocalDbFolder =
     | "container"
     | "daemon"
-    | "ip"
+    | "ipv4"
+    | "ipv6"
     | "region"
     | "user"
 ;

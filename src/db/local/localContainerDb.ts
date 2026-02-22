@@ -15,7 +15,8 @@ export interface ContainerLocalDbFile {
     free: boolean;
     locked: boolean;
     name: string;
-    ports: ContainerPort[];
+    ipv4_ports: ContainerPort[];
+    ipv6_ports: ContainerPort[];
     runtime: string;
     segments: number;
     terminate_at?: number;
@@ -38,7 +39,8 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
             id,
             locked: raw.locked,
             name: raw.name,
-            ports: raw.ports,
+            ipv4_ports: raw.ipv4_ports,
+            ipv6_ports: raw.ipv6_ports,
             runtime: raw.runtime,
             segments: raw.segments,
             terminate_at: raw.terminate_at,
@@ -57,17 +59,16 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
                             cpu_name: daemon.cpu_name,
                             created_at: daemon.created_at,
                             id: daemon.id,
-                            ip_id: daemon.ip!.id,
+                            ipv4_id: daemon.ipv4?.id,
+                            ipv6_id: daemon.ipv6?.id,
                             os: daemon.os,
-                            port_range_end: daemon.port_range_end,
-                            port_range_start: daemon.port_range_start,
+                            ipv4_port_range_start: daemon.ipv4_port_range_start,
+                            ipv4_port_range_end: daemon.ipv4_port_range_end,
                             region_id: daemon.region!.id,
                             segments: daemon.segments,
                             segments_available: daemon.segments_available,
                             setup_complete: daemon.setup_complete,
-                            sftp_port: daemon.sftp_port,
-                            url: daemon.url,
-                            ws_url: daemon.ws_url,
+                            sftp_port: daemon.sftp_port
                         });
                         return daemon;
                     }
@@ -89,17 +90,18 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
                             cpu_name: selectedDaemon.cpu_name,
                             created_at: selectedDaemon.created_at,
                             id: selectedDaemon.id,
-                            ip_id: selectedDaemon.ip!.id,
+                            ipv4_id: selectedDaemon.ipv4?.id,
+                            ipv6_id: selectedDaemon.ipv6?.id,
                             os: selectedDaemon.os,
-                            port_range_end: selectedDaemon.port_range_end,
-                            port_range_start: selectedDaemon.port_range_start,
+                            ipv4_port_range_start: selectedDaemon.ipv4_port_range_start,
+                            ipv4_port_range_end: selectedDaemon.ipv4_port_range_end,
+                            ipv6_port_range_start: selectedDaemon.ipv6_port_range_start,
+                            ipv6_port_range_end: selectedDaemon.ipv6_port_range_end,
                             region_id: selectedDaemon.region!.id,
                             segments: selectedDaemon.segments,
                             segments_available: selectedDaemon.segments_available! - segments,
                             setup_complete: selectedDaemon.setup_complete,
-                            sftp_port: selectedDaemon.sftp_port,
-                            url: selectedDaemon.url,
-                            ws_url: selectedDaemon.ws_url
+                            sftp_port: selectedDaemon.sftp_port
                     });
                     return selectedDaemon;
                 }
@@ -127,21 +129,26 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
         const daemon = await this.reserveSegments(data.region_id, segmentReserveMethod, data.segments);
 
         const variant = await getVariant(data.app_id, data.variant_id);
-        const ports: ContainerPort[] = [];
-        const portsInUse: number[] = [];
-        for (const container of await this.listActiveContainersByDaemon(daemon.id)) {
-            container.ports.forEach(ports => portsInUse.push(ports.host_port));
+        function assignPorts(rangeStart: number, rangeEnd: number, portsInUse: number[]): ContainerPort[] {
+            const ports: ContainerPort[] = [];
+            const range = rangeEnd - rangeStart;
+            for (const containerPort of Object.keys(variant?.ports || {})) {
+                let newHostPort: number;
+                do {
+                    newHostPort = rangeStart + Math.floor(Math.random() * range);
+                } while (portsInUse.includes(newHostPort));
+                ports.push({
+                    container_port: +containerPort,
+                    host_port: newHostPort
+                });
+            }
+            return ports;
         }
-        const range = daemon.port_range_end! - daemon.port_range_start!;
-        for (const containerPort of Object.keys(variant?.ports || {})) {
-            let newHostPort: number;
-            do {
-                newHostPort = daemon.port_range_start + Math.floor(Math.random() * range);
-            } while (portsInUse.includes(newHostPort));
-            ports.push({
-                container_port: +containerPort,
-                host_port: newHostPort
-            });
+        const ipv4PortsInUse: number[] = [];
+        const ipv6PortsInuse: number[] = [];
+        for (const container of await this.listActiveContainersByDaemon(daemon.id)) {
+            container.ipv4_ports.forEach(ports => ipv4PortsInUse.push(ports.host_port));
+            container.ipv6_ports.forEach(ports => ipv6PortsInuse.push(ports.host_port));
         }
 
         const id = this.createUniqueId("container");
@@ -159,7 +166,8 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
             created_at: Date.now(),
             daemon_id: daemon.id,
             locked: false,
-            ports
+            ipv4_ports: (daemon.ipv4_port_range_start && daemon.ipv4_port_range_end) ? assignPorts(daemon.ipv4_port_range_start, daemon.ipv4_port_range_end, ipv4PortsInUse) : [],
+            ipv6_ports: (daemon.ipv6_port_range_start && daemon.ipv6_port_range_end) ? assignPorts(daemon.ipv6_port_range_start, daemon.ipv6_port_range_end, ipv6PortsInuse) : []
         });
 
         return this.getContainer(id);
@@ -176,9 +184,10 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
             daemon_id: container.daemon.id,
             free: container.free,
             id,
+            ipv4_ports: container.ipv4_ports,
+            ipv6_ports: container.ipv6_ports,
             locked: container.locked,
             name: container.name,
-            ports: container.ports,
             runtime: container.runtime,
             segments: container.segments,
             user_id: container.user_id,
