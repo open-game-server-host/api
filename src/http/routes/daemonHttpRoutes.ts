@@ -1,5 +1,6 @@
 import { BodyRequest, respond } from "@open-game-server-host/backend-lib";
 import { Router } from "express";
+import { daemonAuthMiddleware, DaemonResponse } from "../../auth/daemonAuth.js";
 import { DATABASE } from "../../db/db.js";
 import { SetupDaemonData } from "../../interfaces/daemon.js";
 
@@ -23,10 +24,8 @@ daemonHttpRouter.post("/:daemonId/setup", async (req: BodyRequest<SetupDaemonDat
 //     respond(res, daemon);
 // });
 
-// TODO verify daemon api key
-daemonHttpRouter.post("/:daemonId/containers", async (req, res) => {
-    const daemonId = req.params.daemonId;
-    const containers = await DATABASE.listActiveContainersByDaemon(daemonId);
+daemonHttpRouter.post("/:daemonId/containers", daemonAuthMiddleware, async (req, res: DaemonResponse) => {
+    const containers = await DATABASE.listActiveContainersByDaemon(res.locals.daemon.id);
     respond(res, containers);
 });
 
