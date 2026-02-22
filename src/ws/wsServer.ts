@@ -3,6 +3,7 @@ import { WebSocket, WebSocketServer } from "ws";
 import { isDaemonApiKeyValid } from "../daemon/daemon.js";
 import { DATABASE } from "../db/db.js";
 import { containerWsRouter } from "./routes/containerWsRoutes.js";
+import { WS_CLOSE_CODE } from "./wsCloseCode.js";
 import { registerWsConnection } from "./wsConnections.js";
 
 const logger = new Logger("WS");
@@ -23,16 +24,21 @@ interface Params {
     containerId?: string;
 }
 wsServer.on("connection", async (ws, req) => {
+    let type: string | undefined;
+    let id: string | undefined;
     let disconnectFunction: () => void = () => {}; // TODO registering a user should return a disconnect function, which removes the user from the server when they disconnect
 
     ws.on("close", (code, reason) => {
         // TODO
         disconnectFunction();
+        logger.info("Disconnected", {
+            type,
+            id
+        });
     });
 
     ws.on("error", (ws: WebSocket, error: Error) => {
         const body = formatErrorResponseBody(error as Error);
-        logger.error(error);
         ws.send(JSON.stringify(body));
     });
 
@@ -40,7 +46,10 @@ wsServer.on("connection", async (ws, req) => {
         if (!req.url) {
             throw new OGSHError("ws/invalid-params", `need 'type', 'id', and 'authToken' url query params`);
         }
-        const { type, id, authToken, containerId } = getUrlQueryParams<Params>(req.url); // TODO this might be bad because it logs in the browser and malicious addons could scrape your auth token
+        const params = getUrlQueryParams<Params>(req.url); // TODO this might be bad because it logs in the browser and malicious addons could scrape your auth token
+        type = params.type;
+        id = params.id;
+        const { authToken, containerId } = params;
         if (typeof type !== "string") throw new OGSHError("ws/invalid-params", `'type' should be a string`);
         if (typeof id !== "string") throw new OGSHError("ws/invalid-params", `'id' should be a string`);
         if (typeof authToken !== "string") throw new OGSHError("ws/invalid-params", `'authToken' should be a string`);
@@ -50,7 +59,8 @@ wsServer.on("connection", async (ws, req) => {
             id
         });
 
-        ws.on("message", ws.close); // By default, don't support receiving messages from clients
+        // By default, don't support receiving messages from clients
+        ws.on("message", () => ws.close(WS_CLOSE_CODE.FORBIDDEN));
 
         switch (type) {
             case "user": {
@@ -59,6 +69,9 @@ wsServer.on("connection", async (ws, req) => {
                 const userId = await authenticateUser(authToken);
                 // TODO check whether the user has access to this container
                 registerWsConnection("user", userId, ws);
+                logger.info("User connected", {
+                    id
+                });
                 break;
             }
             case "daemon": {
@@ -68,21 +81,19 @@ wsServer.on("connection", async (ws, req) => {
                 }
                 registerWsConnection("daemon", daemon.id, ws);
                 ws.on("message", handleWsMessage);
+                logger.info("Daemon connected", {
+                    id
+                });
                 break;
             }
             default: {
                 throw new OGSHError("auth/invalid", `'type' query param was invalid`);
             }
         }
-        
-        logger.info("Authenticated", {
-            type,
-            id
-        });
     } catch (error) {
         const responseBody = formatErrorResponseBody(error as Error);
         ws.send(JSON.stringify(responseBody));
-        ws.close();
+        ws.close(WS_CLOSE_CODE.UNAUTHORIZED);
     }
 });
 
