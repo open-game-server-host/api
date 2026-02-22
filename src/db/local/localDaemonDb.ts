@@ -5,67 +5,66 @@ import { DATABASE, Database } from "../db.js";
 import { LocalDb } from "./localDb.js";
 
 export interface DaemonLocalDbFile {
-    api_key_hash: string;
-    created_at: number;
+    apiKeyHash: string;
+    createdAt: number;
     id: string;
-    setup_complete: boolean;
-    cpu_arch?: string;
-    cpu_name?: string;
-    ipv4_id?: string;
-    ipv6_id?: string;
+    setupComplete: boolean;
+    cpuArch?: string;
+    cpuName?: string;
+    ipv4Id?: string;
+    ipv6Id?: string;
     os?: string;
-    ipv4_port_range_start?: number;
-    ipv4_port_range_end?: number;
-    ipv6_port_range_start?: number;
-    ipv6_port_range_end?: number;
-    region_id?: string;
+    ipv4PortRangeStart?: number;
+    ipv4PortRangeEnd?: number;
+    ipv6PortRangeStart?: number;
+    ipv6PortRangeEnd?: number;
+    regionId?: string;
     segments?: number;
-    segments_available?: number;
-    sftp_port?: number;
+    segmentsAvailable?: number;
+    sftpPort?: number;
 }
 
 export class LocalDaemonDb extends LocalDb implements Partial<Database> {
     async getDaemon(id: string): Promise<Daemon> {
         const raw = this.readJsonFile<DaemonLocalDbFile>("daemon", id);
-        if (!raw.setup_complete) {
+        if (!raw.setupComplete) {
             throw new OGSHError("general/unspecified", `tried to get info for an incomplete daemon '${id}'`);
         }
         return {
-            api_key_hash: raw.api_key_hash,
-            cpu_arch: raw.cpu_arch!,
-            cpu_name: raw.cpu_name!,
-            created_at: raw.created_at,
+            apiKeyHash: raw.apiKeyHash,
+            cpuArch: raw.cpuArch!,
+            cpuName: raw.cpuName!,
+            createdAt: raw.createdAt,
             id,
-            ipv4: raw.ipv4_id ? await DATABASE.getIpv4(raw.ipv4_id) : undefined,
-            ipv6: raw.ipv6_id ? await DATABASE.getIpv6(raw.ipv6_id) : undefined,
+            ipv4: raw.ipv4Id ? await DATABASE.getIpv4(raw.ipv4Id) : undefined,
+            ipv6: raw.ipv6Id ? await DATABASE.getIpv6(raw.ipv6Id) : undefined,
             os: raw.os!,
-            ipv4_port_range_start: raw.ipv4_port_range_start,
-            ipv4_port_range_end: raw.ipv4_port_range_end,
-            ipv6_port_range_start: raw.ipv6_port_range_start,
-            ipv6_port_range_end: raw.ipv6_port_range_end,
-            region: await DATABASE.getRegion(raw.region_id!),
+            ipv4PortRangeStart: raw.ipv4PortRangeStart,
+            ipv4PortRangeEnd: raw.ipv4PortRangeEnd,
+            ipv6PortRangeStart: raw.ipv6PortRangeStart,
+            ipv6PortRangeEnd: raw.ipv6PortRangeEnd,
+            region: await DATABASE.getRegion(raw.regionId!),
             segments: raw.segments!,
-            segments_available: raw.segments_available!,
-            setup_complete: raw.setup_complete,
-            sftp_port: raw.sftp_port!
+            segmentsAvailable: raw.segmentsAvailable!,
+            setupComplete: raw.setupComplete
         }
     }
 
-    async createDaemon(): Promise<SetupIncompleteDaemon & { api_key: string }> {
+    async createDaemon(): Promise<SetupIncompleteDaemon & { apiKey: string }> {
         const id = this.createUniqueId("daemon");
         const key = generateDaemonApiKey();
         const data: DaemonLocalDbFile = {
             id,
-            api_key_hash: key.hash,
-            created_at: Date.now(),
-            setup_complete: false
+            apiKeyHash: key.hash,
+            createdAt: Date.now(),
+            setupComplete: false
         }
         this.writeJsonFile<DaemonLocalDbFile>("daemon", id, data);
         return {
             id,
-            api_key: key.apiKey,
-            created_at: data.created_at,
-            setup_complete: data.setup_complete
+            apiKey: key.apiKey,
+            createdAt: data.createdAt,
+            setupComplete: data.setupComplete
         }
     }
 
@@ -103,20 +102,19 @@ export class LocalDaemonDb extends LocalDb implements Partial<Database> {
         const raw = this.readJsonFile<DaemonLocalDbFile>("daemon", daemonId);
         this.writeJsonFile<DaemonLocalDbFile>("daemon", daemonId, {
             ...raw,
-            setup_complete: true,
-            cpu_arch: data.cpu_arch,
-            cpu_name: data.cpu_name,
-            ipv4_id: ipv4Id,
-            ipv6_id: ipv6Id,
+            setupComplete: true,
+            cpuArch: data.cpuArch,
+            cpuName: data.cpuName,
+            ipv4Id: ipv4Id,
+            ipv6Id: ipv6Id,
             os: data.os,
-            ipv4_port_range_start: data.ipv4_port_range_start,
-            ipv4_port_range_end: data.ipv4_port_range_end,
-            ipv6_port_range_start: data.ipv6_port_range_start,
-            ipv6_port_range_end: data.ipv6_port_range_end,
-            region_id: data.region_id,
+            ipv4PortRangeStart: data.ipv4PortRangeStart,
+            ipv4PortRangeEnd: data.ipv4PortRangeEnd,
+            ipv6PortRangeStart: data.ipv6PortRangeStart,
+            ipv6PortRangeEnd: data.ipv6PortRangeEnd,
+            regionId: data.regionId,
             segments: data.segments,
-            segments_available: data.segments,
-            sftp_port: data.sftp_port
+            segmentsAvailable: data.segments
         });
         return this.getDaemon(daemonId);
     }
@@ -136,7 +134,7 @@ export class LocalDaemonDb extends LocalDb implements Partial<Database> {
         const daemons: SetupIncompleteDaemon[] = [];
         for (const id of this.enumerateJsonFiles("daemon")) {
             const daemon = await this.getDaemon(id);
-            if (!daemon.setup_complete) {
+            if (!daemon.setupComplete) {
                 daemons.push(daemon);
             }
         }

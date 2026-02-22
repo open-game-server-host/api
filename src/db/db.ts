@@ -23,7 +23,7 @@ export interface Database {
     // logContainerAction(containerId: string, action: string, data: string): Promise<void>;
 
     getDaemon(daemonId: string): Promise<Daemon>;
-    createDaemon(): Promise<SetupIncompleteDaemon & { api_key: string }>;
+    createDaemon(): Promise<SetupIncompleteDaemon & { apiKey: string }>;
     setupDaemon(daemonId: string, data: SetupDaemonData): Promise<Daemon>;
     listDaemonsByRegion(regionId: string): Promise<Daemon[]>; // TODO paginate
     listSetupIncompleteDaemons(): Promise<SetupIncompleteDaemon[]>; // TODO paginate
@@ -109,7 +109,7 @@ function createPostgresDb(): Database {
         listSetupIncompleteDaemons: notImplemented<SetupIncompleteDaemon[]>,
 
         getDaemon: notImplemented<Daemon>,
-        createDaemon: notImplemented<Daemon & { api_key: string }>,
+        createDaemon: notImplemented<SetupIncompleteDaemon & { apiKey: string }>,
         setupDaemon: notImplemented<Daemon>,
         listDaemonsByRegion: notImplemented<Daemon[]>,
 

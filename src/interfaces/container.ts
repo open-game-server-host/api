@@ -1,11 +1,11 @@
 export interface CreateContainerData {
-    app_id: string;
-    variant_id: string;
-    version_id: string;
+    appId: string;
+    variantId: string;
+    versionId: string;
     free: boolean;
     name: string;
-    region_id: string;
+    regionId: string;
     runtime: string;
     segments: number;
-    user_id: string;
+    userId: string;
 }

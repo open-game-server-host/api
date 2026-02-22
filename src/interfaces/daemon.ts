@@ -1,26 +1,24 @@
 export interface CreateDaemonData {
-    api_key_hash: string;
-    created_at: number;
+    apiKeyHash: string;
+    createdAt: number;
 }
 
 export interface SetupIncompleteDaemon {
-    created_at: number;
+    createdAt: number;
     id: string;
-    setup_complete: boolean;
+    setupComplete: boolean;
 }
 
 export interface SetupDaemonData {
-    cpu_arch: string;
-    cpu_name: string;
-    ip_id: string;
-    os: string;
-    ipv4_port_range_start?: number;
-    ipv4_port_range_end?: number;
-    ipv6_port_range_start?: number;
-    ipv6_port_range_end?: number;
-    region_id: string;
-    segments: number;
-    sftp_port: number;
+    cpuArch: string;
+    cpuName: string;
     ipv4?: string;
     ipv6?: string;
+    ipv4PortRangeStart?: number;
+    ipv4PortRangeEnd?: number;
+    ipv6PortRangeStart?: number;
+    ipv6PortRangeEnd?: number;
+    os: string;
+    regionId: string;
+    segments: number;
 }

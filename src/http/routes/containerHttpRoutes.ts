@@ -13,23 +13,23 @@ type ContainerRequest<B = any> = Request<{ containerId: string }, any, B>;
 
 // TODO this will be replaced by webhook from successful payment via stripe/paypal/etc
 interface ContainerCreateBody {
-    app_id: string;
-    variant_id: string;
-    version_id: string;
+    appId: string;
+    variantId: string;
+    versionId: string;
     segments: number;
     name: string;
-    region_id: string;
+    regionId: string;
 }
 containerHttpRouter.post("/", [
-    body("app_id").isString(),
-    body("variant_id").isString(),
-    body("version_id").isString(),
+    body("appId").isString(),
+    body("variantId").isString(),
+    body("versionId").isString(),
     body("segments").isInt({ min: 1 }), // TODO define max segments in global config
     body("name").isString().isLength({ min: 1, max: 30}),
-    body("region_id").isString().isLength({ min: 3, max: 3})
+    body("regionId").isString().isLength({ min: 3, max: 3})
 ], async (req: BodyRequest<ContainerCreateBody>, res: Response) => {
-    const { app_id, variant_id, version_id, segments, name, region_id } = req.body;
-    const container = await createContainer("TODO user id", region_id, app_id, variant_id, version_id, segments, name);
+    const { appId, variantId, versionId, segments, name, regionId } = req.body;
+    const container = await createContainer("TODO user id", regionId, appId, variantId, versionId, segments, name);
     respond(res, container);
 });
 

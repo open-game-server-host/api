@@ -10,15 +10,15 @@ export async function createContainer(userId: string, regionId: string, appId: s
     }
 
     const container = await DATABASE.createContainer({
-        app_id: appId,
-        variant_id: variantId,
-        version_id: versionId,
+        appId: appId,
+        variantId: variantId,
+        versionId: versionId,
         segments,
         free: false,
         name,
-        region_id: regionId,
-        runtime: version.default_runtime,
-        user_id: userId
+        regionId: regionId,
+        runtime: version.defaultRuntime,
+        userId: userId
     });
 
     registerContainer(container.daemon.id, {
@@ -27,13 +27,13 @@ export async function createContainer(userId: string, regionId: string, appId: s
         variantId,
         versionId,
         segments,
-        ipv4Ports: container.ipv4_ports,
-        ipv6Ports: container.ipv6_ports
+        ipv4Ports: container.ipv4Ports,
+        ipv6Ports: container.ipv6Ports
     });
 
     return container;
 }
 
 export function isContainerTerminated(container: Container | ContainerLocalDbFile): boolean {
-    return (container.terminate_at || Number.MAX_SAFE_INTEGER) <= Date.now();
+    return (container.terminateAt || Number.MAX_SAFE_INTEGER) <= Date.now();
 }

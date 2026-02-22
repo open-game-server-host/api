@@ -76,7 +76,7 @@ wsServer.on("connection", async (ws, req) => {
             }
             case "daemon": {
                 const daemon = await DATABASE.getDaemon(id);
-                if (!isDaemonApiKeyValid(authToken as string, daemon.api_key_hash)) {
+                if (!isDaemonApiKeyValid(authToken as string, daemon.apiKeyHash)) {
                     throw new OGSHError("auth/invalid", `invalid api key for daemon id '${id}'`);
                 }
                 registerWsConnection("daemon", daemon.id, ws);

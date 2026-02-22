@@ -45,7 +45,7 @@ export function isDaemonApiKeyValid(providedApiKey: string, storedHash: Daemon |
     if (typeof storedHash === "string") {
         hash = storedHash;
     } else {
-        hash = storedHash.api_key_hash;
+        hash = storedHash.apiKeyHash;
     }
     return generateApiKeyHash(providedApiKey) === hash;
 }
