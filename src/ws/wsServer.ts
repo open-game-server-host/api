@@ -59,9 +59,6 @@ wsServer.on("connection", async (ws, req) => {
             id
         });
 
-        // By default, don't support receiving messages from clients
-        ws.on("message", () => ws.close(WS_CLOSE_CODE.FORBIDDEN));
-
         switch (type) {
             case "user": {
                 if (typeof containerId !== "string") throw new OGSHError("ws/invalid-params", `'containerId' should be a string`);
@@ -69,6 +66,7 @@ wsServer.on("connection", async (ws, req) => {
                 const userId = await authenticateUser(authToken);
                 // TODO check whether the user has access to this container
                 await BROKER.registerUserConnection(userId, ws, containerId);
+                ws.on("message", () => ws.close(WS_CLOSE_CODE.FORBIDDEN));
                 logger.info("User connected", {
                     id
                 });
