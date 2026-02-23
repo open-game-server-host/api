@@ -2,9 +2,9 @@ import { authenticateUser, formatErrorResponseBody, getUrlQueryParams, Logger, O
 import { WebSocket, WebSocketServer } from "ws";
 import { isDaemonApiKeyValid } from "../daemon/daemon.js";
 import { DATABASE } from "../db/db.js";
+import { BROKER } from "./brokers/broker.js";
 import { containerWsRouter } from "./routes/containerWsRoutes.js";
 import { WS_CLOSE_CODE } from "./wsCloseCode.js";
-import { registerWsConnection } from "./wsConnections.js";
 
 const logger = new Logger("WS");
 
@@ -68,7 +68,7 @@ wsServer.on("connection", async (ws, req) => {
                 // TODO implement a limit for connections to one container for one user, e.g. they have it open in 10 tabs and we have to send data to each instance
                 const userId = await authenticateUser(authToken);
                 // TODO check whether the user has access to this container
-                registerWsConnection("user", userId, ws);
+                await BROKER.registerUserConnection(userId, ws, containerId);
                 logger.info("User connected", {
                     id
                 });
@@ -79,8 +79,8 @@ wsServer.on("connection", async (ws, req) => {
                 if (!isDaemonApiKeyValid(authToken as string, daemon.apiKeyHash)) {
                     throw new OGSHError("auth/invalid", `invalid api key for daemon id '${id}'`);
                 }
-                registerWsConnection("daemon", daemon.id, ws);
-                ws.on("message", handleWsMessage);
+                await BROKER.registerDaemonConnection(daemon.id, ws);
+                ws.on("message", handleWsMessage.bind(this));
                 logger.info("Daemon connected", {
                     id
                 });
@@ -109,7 +109,7 @@ function handleWsMessage(ws: WebSocket, data: WebSocket.RawData, isBinary: boole
         const router = routers.get(json.route);
         if (!router) throw new OGSHError("general/unspecified", `router '${json.route}' not found`);
 
-        router.call(json.action, ws, json.body, locals);
+        router.call(json.action, ws, json.body, locals, logger);
     } catch (error) {
         const body = formatErrorResponseBody(error as Error);
         ws.send(JSON.stringify(body));

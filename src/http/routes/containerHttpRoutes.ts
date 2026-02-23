@@ -3,7 +3,7 @@ import { Request, Response, Router } from "express";
 import { body, param } from "express-validator";
 import { createContainer } from "../../container/container.js";
 import { DATABASE } from "../../db/db.js";
-import { installContainer, killContainer, removeContainerFromDaemon, restartContainer, sendCommandToContainer, startContainer, stopContainer } from "../../ws/actions/containerWsActions.js";
+import { BROKER } from "../../ws/brokers/broker.js";
 
 export const containerHttpRouter = Router();
 
@@ -40,9 +40,7 @@ containerHttpRouter.get("/:containerId", parseContainerId, async (req: Container
 
 containerHttpRouter.delete("/:containerId", parseContainerId, async (req: ContainerRequest, res) => {
     const container = await DATABASE.terminateContainer(req.params.containerId);
-    removeContainerFromDaemon(container.daemon.id, {
-        containerId: container.id
-    });
+    await BROKER.removeContainer(container.daemon.id, container.id);
     throw new OGSHError("general/unspecified", `not implemented`);
 });
 
@@ -70,8 +68,7 @@ containerHttpRouter.post("/:containerId/install", parseContainerId, [
     await getVersion(appId, variantId, versionId);
     const container = await DATABASE.getContainer(req.params.containerId);
     // TODO update database record
-    installContainer(container.daemon.id, {
-        containerId: container.id,
+    await BROKER.installContainer(container.daemon.id, container.id, {
         appId,
         variantId,
         versionId
@@ -106,33 +103,25 @@ containerHttpRouter.post("/:containerId/backup", async (req, res) => {
 
 containerHttpRouter.post("/:containerId/start", async (req, res) => {
     const container = await DATABASE.getContainer(req.params.containerId);
-    startContainer(container.daemon.id, {
-        containerId: container.id
-    })
+    await BROKER.startContainer(container.daemon.id, container.id);
     respond(res);
 });
 
 containerHttpRouter.post("/:containerId/stop", async (req, res) => {
     const container = await DATABASE.getContainer(req.params.containerId);
-    stopContainer(container.daemon.id, {
-        containerId: container.id
-    });
+    await BROKER.stopContainer(container.daemon.id, container.id);
     respond(res);
 });
 
 containerHttpRouter.post("/:containerId/restart", async (req, res) => {
     const container = await DATABASE.getContainer(req.params.containerId);
-    restartContainer(container.daemon.id, {
-        containerId: container.id
-    });
+    await BROKER.restartContainer(container.daemon.id, container.id);
     respond(res);
 });
 
 containerHttpRouter.post("/:containerId/kill", async (req, res) => {
     const container = await DATABASE.getContainer(req.params.containerId);
-    killContainer(container.daemon.id, {
-        containerId: container.id
-    });
+    await BROKER.killContainer(container.daemon.id, container.id);
     respond(res);
 });
 
@@ -143,10 +132,7 @@ containerHttpRouter.post("/:containerId/command", [
     body("command").isString()
 ], async (req: BodyRequest<CommandBody>, res: Response) => {
     const container = await DATABASE.getContainer(req.params.containerId);
-    sendCommandToContainer(container.daemon.id, {
-        containerId: container.id,
-        command: req.body.command
-    })
+    await BROKER.sendCommandToContainer(container.daemon.id, container.id, req.body.command);
     respond(res);
 });
 
