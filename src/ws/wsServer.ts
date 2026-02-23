@@ -47,7 +47,7 @@ wsServer.on("connection", async (ws, req) => {
             throw new OGSHError("ws/invalid-params", `need 'type', 'id', and 'authToken' url query params`);
         }
         const params = getUrlQueryParams<Params>(req.url); // TODO this might be bad because it logs in the browser and malicious addons could scrape your auth token
-        type = params.type;
+        type = params.type || "user";
         id = params.id;
         const { authToken, containerId } = params;
         if (typeof type !== "string") throw new OGSHError("ws/invalid-params", `'type' should be a string`);
@@ -79,15 +79,16 @@ wsServer.on("connection", async (ws, req) => {
                 }
                 await BROKER.registerDaemonConnection(daemon.id, ws);
                 ws.on("message", (data, isBinary) => handleWsMessage(ws, data, isBinary));
-                logger.info("Daemon connected", {
-                    id
-                });
                 break;
             }
             default: {
                 throw new OGSHError("auth/invalid", `'type' query param was invalid`);
             }
         }
+        logger.info("Connected", {
+            type,
+            id
+        });
     } catch (error) {
         const responseBody = formatErrorResponseBody(error as Error);
         ws.send(JSON.stringify(responseBody));
