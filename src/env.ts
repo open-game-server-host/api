@@ -6,6 +6,8 @@ import { BrokerType } from "./ws/brokers/broker.js";
 const dbKey = "OGSH_DB";
 const brokerKey = "OGSH_BROKER";
 const authKey = "OGSH_AUTH";
+const tlsCertPathKey = "OGSH_TLS_CERT";
+const tlsKeyPathKey = "OGSH_TLS_KEY";
 
 const parsedVariables = parseEnvironmentVariables([
     {
@@ -19,6 +21,14 @@ const parsedVariables = parseEnvironmentVariables([
     {
         key: authKey,
         defaultValue: "none"
+    },
+    {
+        key: tlsCertPathKey,
+        defaultValue: "origin.crt"
+    },
+    {
+        key: tlsKeyPathKey,
+        defaultValue: "private.key"
     }
 ]);
 
@@ -32,4 +42,12 @@ export function getBrokerType(): BrokerType {
 
 export function getAuthType(): AuthType {
     return parsedVariables.get(authKey)! as AuthType;
+}
+
+export function getTlsCertPath(): string {
+    return parsedVariables.get(tlsCertPathKey)!;
+}
+
+export function getTlsKeyPath(): string {
+    return parsedVariables.get(tlsKeyPathKey)!;
 }

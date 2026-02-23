@@ -1,6 +1,7 @@
 import { BodyRequest, getVersion, OGSHError, respond } from "@open-game-server-host/backend-lib";
 import { Request, Response, Router } from "express";
 import { body, param } from "express-validator";
+import { UserResponse } from "../../auth/userAuth.js";
 import { createContainer } from "../../container/container.js";
 import { DATABASE } from "../../db/db.js";
 import { BROKER } from "../../ws/brokers/broker.js";
@@ -27,9 +28,10 @@ containerHttpRouter.post("/", [
     body("segments").isInt({ min: 1 }), // TODO define max segments in global config
     body("name").isString().isLength({ min: 1, max: 30}),
     body("regionId").isString().isLength({ min: 3, max: 3})
-], async (req: BodyRequest<ContainerCreateBody>, res: Response) => {
+], async (req: BodyRequest<ContainerCreateBody>, res: UserResponse) => {
     const { appId, variantId, versionId, segments, name, regionId } = req.body;
-    const container = await createContainer("TODO user id", regionId, appId, variantId, versionId, segments, name);
+    const userId = (await DATABASE.getUser(res.locals.authUid)).id;
+    const container = await createContainer(userId, regionId, appId, variantId, versionId, segments, name);
     respond(res, container);
 });
 

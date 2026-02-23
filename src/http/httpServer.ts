@@ -1,7 +1,9 @@
 import { expressErrorHandler, Logger } from "@open-game-server-host/backend-lib";
 import express from "express";
-import { createServer } from "http";
+import { readFileSync } from "fs";
+import https from "https";
 import { userAuthMiddleware } from "../auth/userAuth.js";
+import { getTlsCertPath, getTlsKeyPath } from "../env.js";
 import { wsServer } from "../ws/wsServer.js";
 import { appHttpRouter } from "./routes/appHttpRoutes.js";
 import { containerHttpRouter } from "./routes/containerHttpRoutes.js";
@@ -14,13 +16,17 @@ export async function initHttpServer(logger: Logger) {
 
     // TODO config routes
     router.use("/v1/apps", appHttpRouter);
-    router.use("/v1/container", containerHttpRouter); // TODO user validation middleware
+    router.use("/v1/container", userAuthMiddleware, containerHttpRouter); // TODO user validation middleware
     router.use("/v1/me", userAuthMiddleware, meHttpRouter); // TODO user validation middleware
     router.use("/v1/daemon", daemonHttpRouter); // TODO daemon validation middleware
 
     router.use(expressErrorHandler);
 
-    const httpServer = createServer(router);
+    const httpServer = https.createServer({ // TOOD this causes warning "punycode module is deprecated"
+        ...router,
+        cert: readFileSync(getTlsCertPath()).toString(),
+        key: readFileSync(getTlsKeyPath()).toString()
+    });
     httpServer.on("upgrade", async (req, socket, head) => {
         wsServer.handleUpgrade(req, socket, head, (ws) => {
             wsServer.emit("connection", ws, req);
