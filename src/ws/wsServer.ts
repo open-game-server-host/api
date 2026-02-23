@@ -80,7 +80,7 @@ wsServer.on("connection", async (ws, req) => {
                     throw new OGSHError("auth/invalid", `invalid api key for daemon id '${id}'`);
                 }
                 await BROKER.registerDaemonConnection(daemon.id, ws);
-                ws.on("message", handleWsMessage.bind(this));
+                ws.on("message", (data, isBinary) => handleWsMessage(ws, data, isBinary));
                 logger.info("Daemon connected", {
                     id
                 });
