@@ -1,5 +1,6 @@
-import { authenticateUser, formatErrorResponseBody, getUrlQueryParams, Logger, OGSHError, WsMsg, WsRouter } from "@open-game-server-host/backend-lib";
+import { formatErrorResponseBody, getUrlQueryParams, Logger, OGSHError, WsMsg, WsRouter } from "@open-game-server-host/backend-lib";
 import { WebSocket, WebSocketServer } from "ws";
+import { authenticateUser } from "../auth/userAuth.js";
 import { isDaemonApiKeyValid } from "../daemon/daemon.js";
 import { DATABASE } from "../db/db.js";
 import { BROKER } from "./brokers/broker.js";
@@ -63,9 +64,9 @@ wsServer.on("connection", async (ws, req) => {
             case "user": {
                 if (typeof containerId !== "string") throw new OGSHError("ws/invalid-params", `'containerId' should be a string`);
                 // TODO implement a limit for connections to one container for one user, e.g. they have it open in 10 tabs and we have to send data to each instance
-                const userId = await authenticateUser(authToken);
+                const authUid = await authenticateUser(authToken);
                 // TODO check whether the user has access to this container
-                await BROKER.registerUserConnection(userId, ws, containerId);
+                await BROKER.registerUserConnection(authUid, ws, containerId);
                 ws.on("message", () => ws.close(WS_CLOSE_CODE.FORBIDDEN));
                 logger.info("User connected", {
                     id

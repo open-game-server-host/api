@@ -4,21 +4,21 @@ import { Broker, UserMessage } from "./broker.js";
 
 export class LocalMessageBroker implements Broker {
     private containerIdByWebsocket = new Map<WebSocket, string>();
-    private websocketByUserId = new Map<string, WebSocket>();
+    private websocketByAuthUid = new Map<string, WebSocket>();
 
     private websocketByDaemonId = new Map<string, WebSocket>();
 
-    async registerUserConnection(userId: string, ws: WebSocket, containerId: string): Promise<void> {
-        this.websocketByUserId.set(userId, ws);
+    async registerUserConnection(authUid: string, ws: WebSocket, containerId: string): Promise<void> {
+        this.websocketByAuthUid.set(authUid, ws);
         this.containerIdByWebsocket.set(ws, containerId);
     }
 
-    async removeUserConnection(userId: string): Promise<void> {
-        const ws = this.websocketByUserId.get(userId);
+    async removeUserConnection(authUid: string): Promise<void> {
+        const ws = this.websocketByAuthUid.get(authUid);
         if (!ws) {
             return;
         }
-        this.websocketByUserId.delete(userId);
+        this.websocketByAuthUid.delete(authUid);
         this.containerIdByWebsocket.delete(ws);
     }
 

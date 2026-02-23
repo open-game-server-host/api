@@ -1,6 +1,7 @@
-import { authenticateUser, OGSHError, User } from "@open-game-server-host/backend-lib";
+import { OGSHError, User } from "@open-game-server-host/backend-lib";
 import { NextFunction, Request, Response } from "express";
 import { DATABASE } from "../db/db.js";
+import { authenticateUser } from "./userAuth.js";
 
 export interface ContainerLocals {
     containerId: string;
@@ -16,10 +17,10 @@ export async function containerAuthMiddleware(req: Request, res: ContainerRespon
     }
     res.locals.containerId = containerId;
 
-    const userId = await authenticateUser(req);
+    const authUid = await authenticateUser(req);
 
     // TODO check if user has permission to access this container
 
-    res.locals.user = await DATABASE.getUser(userId);
+    res.locals.user = await DATABASE.getUser(authUid);
     next();
 }

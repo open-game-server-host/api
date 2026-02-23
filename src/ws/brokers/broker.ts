@@ -15,8 +15,8 @@ export interface UserMessage {
 }
 
 export interface Broker {
-    registerUserConnection(userId: string, ws: WebSocket, containerId: string): Promise<void>;
-    removeUserConnection(userId: string): Promise<void>;
+    registerUserConnection(authUid: string, ws: WebSocket, containerId: string): Promise<void>;
+    removeUserConnection(authUid: string): Promise<void>;
     sendLogsAndStatsToUsers(containerId: string, body: any): Promise<void>;
 
     registerDaemonConnection(daemonId: string, ws: WebSocket): Promise<void>;

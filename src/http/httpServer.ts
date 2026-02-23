@@ -1,6 +1,7 @@
-import { expressErrorHandler, Logger, userAuthMiddleware } from "@open-game-server-host/backend-lib";
+import { expressErrorHandler, Logger } from "@open-game-server-host/backend-lib";
 import express from "express";
 import { createServer } from "http";
+import { userAuthMiddleware } from "../auth/userAuth.js";
 import { wsServer } from "../ws/wsServer.js";
 import { appHttpRouter } from "./routes/appHttpRoutes.js";
 import { containerHttpRouter } from "./routes/containerHttpRoutes.js";
