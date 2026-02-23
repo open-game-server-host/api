@@ -1,4 +1,4 @@
-import { Container, ContainerPort, Daemon, getVariant, getVersion, OGSHError } from "@open-game-server-host/backend-lib";
+import { Container, ContainerPort, Daemon, getVariant, getVersion, OGSHError, sanitiseDaemon } from "@open-game-server-host/backend-lib";
 import { isContainerTerminated } from "../../container/container.js";
 import { segmentReserveMethod, SegmentReserveMethod } from "../../daemon/daemon.js";
 import { CreateContainerData } from "../../interfaces/container.js";
@@ -34,7 +34,7 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
             versionId: raw.versionId,
             contractLengthDays: raw.contractLengthDays,
             createdAt: raw.createdAt,
-            daemon: await DATABASE.getDaemon(raw.daemonId),
+            daemon: sanitiseDaemon(await DATABASE.getDaemon(raw.daemonId)),
             free: raw.free,
             id,
             locked: raw.locked,
@@ -114,7 +114,7 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
 
     async createContainer(data: CreateContainerData): Promise<Container> {
         if (!await DATABASE.doesUserExist(data.userId)) {
-            
+            // TODO
         }
 
         const version = await getVersion(data.appId, data.variantId, data.versionId);

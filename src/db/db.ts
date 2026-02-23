@@ -42,7 +42,7 @@ export interface Database {
 
     doesUserExist(id: string): Promise<boolean>;
     getUser(authUid: string): Promise<User>;
-    createUser(authUid: string, ): Promise<User>;
+    createUser(authUid: string): Promise<User>;
 }
 
 export const DATABASE = createDb();

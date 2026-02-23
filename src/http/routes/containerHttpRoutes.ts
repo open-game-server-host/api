@@ -41,7 +41,7 @@ containerHttpRouter.get("/:containerId", parseContainerId, async (req: Container
 containerHttpRouter.delete("/:containerId", parseContainerId, async (req: ContainerRequest, res) => {
     const container = await DATABASE.terminateContainer(req.params.containerId);
     await BROKER.removeContainer(container.daemon.id, container.id);
-    throw new OGSHError("general/unspecified", `not implemented`);
+    respond(res);
 });
 
 containerHttpRouter.post("/:containerId/cancel", parseContainerId, async (req: ContainerRequest, res) => {
@@ -81,7 +81,7 @@ interface ContainerNameBody {
 }
 containerHttpRouter.post("/:containerId/name", async (req: ContainerRequest<ContainerNameBody>, res) => {
     // TODO update database record
-    respond(res);
+    throw new OGSHError("general/unspecified", `not implemented`);
 });
 
 containerHttpRouter.post("/:containerId/resize", async (req, res) => {
