@@ -22,3 +22,9 @@ export interface SetupDaemonData {
     regionId: string;
     segments: number;
 }
+
+export interface DaemonWsMessage {
+    route: string;
+    action: string;
+    body: any;
+}
