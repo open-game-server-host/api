@@ -2,6 +2,7 @@ import { ContainerAppData, ContainerRegisterData, OGSHError } from "@open-game-s
 import { WebSocket } from "ws";
 import { getBrokerType } from "../../env.js";
 import { LocalMessageBroker } from "./localMessageBroker.js";
+import { RedisMessageBroker } from "./redisMessageBroker.js";
 
 export type BrokerType =
     | "local"
@@ -65,26 +66,24 @@ function createLocalBroker(): Broker {
 }
 
 function createRedisBroker(): Broker {
-    function notImplemented(): Promise<any> {
-        throw new Error("not implemented");
-    }
+    const redis = new RedisMessageBroker();
 
     return {
-        registerUserConnection: notImplemented,
-        removeUserConnection: notImplemented,
+        registerUserConnection: redis.registerUserConnection.bind(redis),
+        removeUserConnection: redis.removeUserConnection.bind(redis),
 
-        sendLogsAndStatsToUsers: notImplemented,
+        sendLogsAndStatsToUsers: redis.sendLogsAndStatsToUsers.bind(redis),
 
-        registerDaemonConnection: notImplemented,
-        removeDaemonConnection: notImplemented,
-        startContainer: notImplemented,
-        stopContainer: notImplemented,
-        restartContainer: notImplemented,
-        killContainer: notImplemented,
-        sendCommandToContainer: notImplemented,
-        installContainer: notImplemented,
-        registerContainer: notImplemented,
-        removeContainer: notImplemented
+        registerDaemonConnection: redis.registerDaemonConnection.bind(redis),
+        removeDaemonConnection: redis.removeDaemonConnection.bind(redis),
+        startContainer: redis.startContainer.bind(redis),
+        stopContainer: redis.stopContainer.bind(redis),
+        restartContainer: redis.restartContainer.bind(redis),
+        killContainer: redis.killContainer.bind(redis),
+        sendCommandToContainer: redis.sendCommandToContainer.bind(redis),
+        installContainer: redis.installContainer.bind(redis),
+        registerContainer: redis.registerContainer.bind(redis),
+        removeContainer: redis.removeContainer.bind(redis)
     }
 }
 
