@@ -22,12 +22,11 @@ export async function initHttpServer(logger: Logger) {
 
     router.use(expressErrorHandler);
 
-    const httpServer = https.createServer({ // TOOD this causes warning "punycode module is deprecated"
-        ...router,
+    const server = https.createServer({
         cert: readFileSync(getTlsCertPath()).toString(),
         key: readFileSync(getTlsKeyPath()).toString()
-    });
-    httpServer.on("upgrade", async (req, socket, head) => {
+    }, router);
+    server.on("upgrade", async (req, socket, head) => {
         wsServer.handleUpgrade(req, socket, head, (ws) => {
             wsServer.emit("connection", ws, req);
         });
@@ -35,7 +34,7 @@ export async function initHttpServer(logger: Logger) {
 
     const port = 8080;
     await new Promise<void>(res => {
-        httpServer.listen(port, () => {
+        server.listen(port, () => {
             logger.info(`Started http server on port ${port}`);
             res();
         });

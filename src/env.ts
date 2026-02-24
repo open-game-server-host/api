@@ -1,4 +1,4 @@
-import { parseEnvironmentVariables } from "@open-game-server-host/backend-lib";
+import { OGSHError, parseEnvironmentVariables } from "@open-game-server-host/backend-lib";
 import { AuthType } from "./auth/user/auth.js";
 import { DbType } from "./db/db.js";
 import { BrokerType } from "./ws/brokers/broker.js";
@@ -8,6 +8,7 @@ const brokerKey = "OGSH_BROKER";
 const authKey = "OGSH_AUTH";
 const tlsCertPathKey = "OGSH_TLS_CERT";
 const tlsKeyPathKey = "OGSH_TLS_KEY";
+const portKey = "OGSH_PORT";
 
 const parsedVariables = parseEnvironmentVariables([
     {
@@ -29,6 +30,10 @@ const parsedVariables = parseEnvironmentVariables([
     {
         key: tlsKeyPathKey,
         defaultValue: "private.key"
+    },
+    {
+        key: portKey,
+        defaultValue: "443"
     }
 ]);
 
@@ -50,4 +55,12 @@ export function getTlsCertPath(): string {
 
 export function getTlsKeyPath(): string {
     return parsedVariables.get(tlsKeyPathKey)!;
+}
+
+export function getPort(): number {
+    const port = +parsedVariables.get(portKey)!;
+    if (!Number.isInteger(port)) {
+        throw new OGSHError("general/unspecified", "port should be an integer");
+    }
+    return port;
 }
