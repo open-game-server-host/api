@@ -2,8 +2,7 @@ import { expressErrorHandler, Logger } from "@open-game-server-host/backend-lib"
 import express from "express";
 import { readFileSync } from "fs";
 import https from "https";
-import { userAuthMiddleware } from "../auth/userAuth.js";
-import { getTlsCertPath, getTlsKeyPath } from "../env.js";
+import { getPort, getTlsCertPath, getTlsKeyPath } from "../env.js";
 import { wsServer } from "../ws/wsServer.js";
 import { appHttpRouter } from "./routes/appHttpRoutes.js";
 import { containerHttpRouter } from "./routes/containerHttpRoutes.js";
@@ -14,29 +13,26 @@ export async function initHttpServer(logger: Logger) {
     const router = express();
     router.use(express.json());
 
-    // TODO config routes
     router.use("/v1/apps", appHttpRouter);
-    router.use("/v1/container", userAuthMiddleware, containerHttpRouter); // TODO user validation middleware
-    router.use("/v1/me", userAuthMiddleware, meHttpRouter); // TODO user validation middleware
-    router.use("/v1/daemon", daemonHttpRouter); // TODO daemon validation middleware
+    router.use("/v1/container", containerHttpRouter);
+    router.use("/v1/me", meHttpRouter);
+    router.use("/v1/daemon", daemonHttpRouter);
 
     router.use(expressErrorHandler);
 
-    const httpServer = https.createServer({ // TOOD this causes warning "punycode module is deprecated"
-        ...router,
+    const server = https.createServer({
         cert: readFileSync(getTlsCertPath()).toString(),
         key: readFileSync(getTlsKeyPath()).toString()
-    });
-    httpServer.on("upgrade", async (req, socket, head) => {
+    }, router);
+    server.on("upgrade", async (req, socket, head) => {
         wsServer.handleUpgrade(req, socket, head, (ws) => {
             wsServer.emit("connection", ws, req);
         });
     });
 
-    const port = 8080;
     await new Promise<void>(res => {
-        httpServer.listen(port, () => {
-            logger.info(`Started http server on port ${port}`);
+        server.listen(getPort(), () => {
+            logger.info(`Started http server on port ${getPort()}`);
             res();
         });
     });

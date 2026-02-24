@@ -1,4 +1,4 @@
-import { Container, ContainerPort, Daemon, getVariant, getVersion, OGSHError, sanitiseDaemon } from "@open-game-server-host/backend-lib";
+import { Container, ContainerPermission, ContainerPort, ContainerWithPermissions, Daemon, getVariant, getVersion, OGSHError, sanitiseDaemon } from "@open-game-server-host/backend-lib";
 import { isContainerTerminated } from "../../container/container.js";
 import { segmentReserveMethod, SegmentReserveMethod } from "../../daemon/daemon.js";
 import { CreateContainerData } from "../../interfaces/container.js";
@@ -21,6 +21,9 @@ export interface ContainerLocalDbFile {
     segments: number;
     terminateAt?: number;
     userId: string;
+    users: {
+        [userId: string]: ContainerPermission[];
+    }
     variantId: string;
     versionId: string;
 }
@@ -44,6 +47,29 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
             runtime: raw.runtime,
             segments: raw.segments,
             terminateAt: raw.terminateAt,
+            userId: raw.userId,
+        }
+    }
+
+    async getContainerAsUser(id: string, userId: string): Promise<ContainerWithPermissions> {
+        const raw = this.readJsonFile<ContainerLocalDbFile>("container", id);
+        return {
+            appId: raw.appId,
+            variantId: raw.variantId,
+            versionId: raw.versionId,
+            contractLengthDays: raw.contractLengthDays,
+            createdAt: raw.createdAt,
+            daemon: sanitiseDaemon(await DATABASE.getDaemon(raw.daemonId)),
+            free: raw.free,
+            id,
+            locked: raw.locked,
+            name: raw.name,
+            ipv4Ports: raw.ipv4Ports,
+            ipv6Ports: raw.ipv6Ports,
+            runtime: raw.runtime,
+            segments: raw.segments,
+            terminateAt: raw.terminateAt,
+            userPermissions: raw.users[userId] || undefined,
             userId: raw.userId,
         }
     }
@@ -167,7 +193,18 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
             daemonId: daemon.id,
             locked: false,
             ipv4Ports: (daemon.ipv4PortRangeStart && daemon.ipv4PortRangeEnd) ? assignPorts(daemon.ipv4PortRangeStart, daemon.ipv4PortRangeEnd, ipv4PortsInUse) : [],
-            ipv6Ports: (daemon.ipv6PortRangeStart && daemon.ipv6PortRangeEnd) ? assignPorts(daemon.ipv6PortRangeStart, daemon.ipv6PortRangeEnd, ipv6PortsInuse) : []
+            ipv6Ports: (daemon.ipv6PortRangeStart && daemon.ipv6PortRangeEnd) ? assignPorts(daemon.ipv6PortRangeStart, daemon.ipv6PortRangeEnd, ipv6PortsInuse) : [],
+            users: {
+                [data.userId]: [
+                    "command",
+                    "install",
+                    "kill",
+                    "setRuntime",
+                    "start",
+                    "stop",
+                    "terminate"
+                ]
+            }
         });
 
         return this.getContainer(id);
@@ -191,6 +228,7 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
             runtime: container.runtime,
             segments: container.segments,
             userId: container.userId,
+            users: {},
             variantId: container.variantId,
             versionId: container.versionId,
             terminateAt: now + remainingTime

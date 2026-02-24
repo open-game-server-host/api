@@ -1,4 +1,4 @@
-import { Container, Daemon, Ip, OGSHError, Region, User } from "@open-game-server-host/backend-lib";
+import { Container, ContainerWithPermissions, Daemon, Ip, OGSHError, Region, User } from "@open-game-server-host/backend-lib";
 import { getDbType } from "../env.js";
 import { CreateContainerData } from "../interfaces/container.js";
 import { SetupDaemonData, SetupIncompleteDaemon } from "../interfaces/daemon.js";
@@ -16,6 +16,7 @@ export type DbType =
 
 export interface Database {
     getContainer(containerId: string): Promise<Container>;
+    getContainerAsUser(containerId: string, userId: string): Promise<ContainerWithPermissions>;
     createContainer(data: CreateContainerData): Promise<Container>;
     terminateContainer(containerId: string): Promise<Container>;
     listActiveContainersByUser(uid: string): Promise<Container[]>; // TOOD paginate
@@ -68,6 +69,7 @@ function createLocalDb(): Database {
         createContainer: containerDb.createContainer.bind(containerDb),
         terminateContainer: containerDb.terminateContainer.bind(containerDb),
         getContainer: containerDb.getContainer.bind(containerDb),
+        getContainerAsUser: containerDb.getContainerAsUser.bind(containerDb),
         listActiveContainersByDaemon: containerDb.listActiveContainersByDaemon.bind(containerDb),
         listActiveContainersByUser: containerDb.listActiveContainersByUser.bind(containerDb),
         
@@ -96,37 +98,38 @@ function createLocalDb(): Database {
 }
 
 function createPostgresDb(): Database {
-    function notImplemented<T>(): Promise<T> {
+    function notImplemented(): Promise<any> {
         throw new Error("not implemented");
     }
 
     return {
-        createContainer: notImplemented<Container>,
-        terminateContainer: notImplemented<Container>,
-        getContainer: notImplemented<Container>,
-        listActiveContainersByDaemon: notImplemented<Container[]>,
-        listActiveContainersByUser: notImplemented<Container[]>,
-        listSetupIncompleteDaemons: notImplemented<SetupIncompleteDaemon[]>,
+        createContainer: notImplemented,
+        terminateContainer: notImplemented,
+        getContainer: notImplemented,
+        getContainerAsUser: notImplemented,
+        listActiveContainersByDaemon: notImplemented,
+        listActiveContainersByUser: notImplemented,
+        listSetupIncompleteDaemons: notImplemented,
 
-        getDaemon: notImplemented<Daemon>,
-        createDaemon: notImplemented<SetupIncompleteDaemon & { apiKey: string }>,
-        setupDaemon: notImplemented<Daemon>,
-        listDaemonsByRegion: notImplemented<Daemon[]>,
+        getDaemon: notImplemented,
+        createDaemon: notImplemented,
+        setupDaemon: notImplemented,
+        listDaemonsByRegion: notImplemented,
 
-        getIpv4: notImplemented<Ip>,
-        getIpv4ByIp: notImplemented<Ip>,
-        listIpv4s: notImplemented<Ip[]>,
+        getIpv4: notImplemented,
+        getIpv4ByIp: notImplemented,
+        listIpv4s: notImplemented,
 
-        getIpv6: notImplemented<Ip>,
-        getIpv6ByIp: notImplemented<Ip>,
-        listIpv6s: notImplemented<Ip[]>,
+        getIpv6: notImplemented,
+        getIpv6ByIp: notImplemented,
+        listIpv6s: notImplemented,
 
-        getRegion: notImplemented<Region>,
-        createRegion: notImplemented<Region>,
-        listRegions: notImplemented<Region[]>,
+        getRegion: notImplemented,
+        createRegion: notImplemented,
+        listRegions: notImplemented,
 
-        doesUserExist: notImplemented<boolean>,
-        getUser: notImplemented<User>,
-        createUser: notImplemented<User>
+        doesUserExist: notImplemented,
+        getUser: notImplemented,
+        createUser: notImplemented
     }
 }
