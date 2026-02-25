@@ -96,6 +96,8 @@ function createLocalDb(): Database {
 }
 
 function createPostgresDb(): Database {
+    // const postgres = new PostgresDb();
+
     function notImplemented<T>(): Promise<T> {
         throw new Error("not implemented");
     }
