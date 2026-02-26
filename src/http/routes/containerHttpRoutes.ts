@@ -41,7 +41,8 @@ containerHttpRouter.get("/:containerId", parseContainerId, async (req: Container
 });
 
 containerHttpRouter.delete("/:containerId", parseContainerId, async (req: ContainerRequest, res) => {
-    const container = await DATABASE.terminateContainer(req.params.containerId);
+    await DATABASE.terminateContainer(req.params.containerId, new Date()); // TODO in the future support selecting termination date
+    const container = await DATABASE.getContainer(req.params.containerId);
     await BROKER.removeContainer(container.daemon.id, container.id);
     respond(res);
 });

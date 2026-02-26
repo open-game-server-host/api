@@ -173,7 +173,7 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
         return this.getContainer(id);
     }
 
-    async terminateContainer(id: string): Promise<Container> {
+    async terminateContainer(id: string) {
         const container = await this.getContainer(id);
         const now = Date.now();
         const remainingTime = (now - container.createdAt) / (container.contractLengthDays * 86_400_000);
@@ -195,7 +195,6 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
             versionId: container.versionId,
             terminateAt: now + remainingTime
         });
-        return container;
     }
 
     async listActiveContainersByDaemon(daemonId: string): Promise<Container[]> {

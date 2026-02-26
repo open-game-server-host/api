@@ -4,8 +4,8 @@ import { Database } from "../db.js";
 import { LocalDb } from "./localDb.js";
 
 export class LocalRegionDb extends LocalDb implements Partial<Database> {
-    async getRegion(id: string): Promise<Region> {
-        return this.readJsonFile<Region>("region", id);
+    async getRegion(regionId: string): Promise<Region> {
+        return this.readJsonFile<Region>("region", regionId);
     }
 
     async createRegion(data: CreateRegionData): Promise<Region> {

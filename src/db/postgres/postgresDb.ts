@@ -1,5 +1,5 @@
-import { Logger, OGSHError, parseEnvironmentVariables } from "@open-game-server-host/backend-lib";
-import { Pool, QueryResult, QueryResultRow } from "pg";
+import { OGSHError, parseEnvironmentVariables } from "@open-game-server-host/backend-lib";
+import { Pool, QueryResult } from "pg";
 
 const hostKey = "OGSH_POSTGRES_HOST";
 const portKey = "OGSH_POSTGRES_PORT";
@@ -40,7 +40,7 @@ async function createPool(): Promise<Pool> {
     const pool = new Pool({
         host: parsed.get(hostKey)!,
         port,
-        user: parsed.get(portKey)!,
+        user: parsed.get(userKey)!,
         password: parsed.get(passwordKey)!,
         // TODO enable ssl after testing
         // ssl: {
@@ -54,20 +54,16 @@ async function createPool(): Promise<Pool> {
 }
 
 export abstract class PostgresDb {
-    private static logger = new Logger("POSTGRES DB");
     private static pool: Promise<Pool> = createPool();
 
     static {
-        (async () => {
-            const pool = await this.pool;
-
-            pool.on("error", (error, client) => {
-                this.logger.error(error);
-            });
-        })();
+        PostgresDb.pool.catch(error => {
+            // TODO proper error handling
+            console.error(error);
+        });
     }
 
-    protected async query<R extends QueryResultRow = any>(statement: string, ...args: string[]): Promise<QueryResult<R>> {
+    protected async query(statement: string, ...args: any[]): Promise<QueryResult> {
         const client = await (await PostgresDb.pool).connect();
         return client.query(statement, args).then(result => {
             client.release();
@@ -76,5 +72,17 @@ export abstract class PostgresDb {
             client.release();
             throw new OGSHError("general/unspecified", error);
         });
+    }
+
+    protected async countQuery(statement: string, ...args: any[]): Promise<number> {
+        const result = await this.query(statement, ...args);
+        if (result.rowCount === 0 || !result.rows[0].count) {
+            throw new OGSHError("general/unspecified", `countQuery function did not produce a "count" row, statement: '${statement}'`);
+        }
+        const count = +result.rows[0].count;
+        if (!Number.isInteger(count)) {
+            throw new OGSHError("general/unspecified", `"count" was not an integer, statement: '${statement}'`);
+        }
+        return count;
     }
 }
