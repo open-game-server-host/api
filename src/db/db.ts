@@ -23,11 +23,11 @@ export interface Database {
     // logContainerAction(containerId: string, action: string, data: string): Promise<void>;
 
     getDaemon(daemonId: string): Promise<Daemon>;
+    getDaemonByApiKeyHash(apiKeyHash: string): Promise<Daemon | SetupIncompleteDaemon>;
     createDaemon(): Promise<SetupIncompleteDaemon & { apiKey: string }>;
     setupDaemon(daemonId: string, data: SetupDaemonData): Promise<Daemon>;
     listDaemonsByRegion(regionId: string): Promise<Daemon[]>; // TODO paginate
     listSetupIncompleteDaemons(): Promise<SetupIncompleteDaemon[]>; // TODO paginate
-    getIncompleteDaemonIdByApiKeyHash(apiKeyHash: string): Promise<string>;
 
     getIpv4(ipId: string): Promise<Ip>;
     getIpv4ByIp(ipv4: string): Promise<Ip>;
@@ -73,11 +73,11 @@ function createLocalDb(): Database {
         listActiveContainersByUser: containerDb.listActiveContainersByUser.bind(containerDb),
         
         getDaemon: daemonDb.getDaemon.bind(daemonDb),
+        getDaemonByApiKeyHash: daemonDb.getDaemonByApiKeyHash.bind(daemonDb),
         createDaemon: daemonDb.createDaemon.bind(daemonDb),
         setupDaemon: daemonDb.setupDaemon.bind(daemonDb),
         listDaemonsByRegion: daemonDb.listDaemonsByRegion.bind(daemonDb),
         listSetupIncompleteDaemons: daemonDb.listSetupIncompleteDaemons.bind(daemonDb),
-        getIncompleteDaemonIdByApiKeyHash: daemonDb.getIncompleteDaemonIdByApiKeyHash.bind(daemonDb),
 
         getIpv4: ipv4Db.getIpv4.bind(ipv4Db),
         getIpv4ByIp: ipv4Db.getIpv4ByIp.bind(ipv4Db),
@@ -111,10 +111,10 @@ function createPostgresDb(): Database {
         listSetupIncompleteDaemons: notImplemented,
 
         getDaemon: notImplemented,
+        getDaemonByApiKeyHash: notImplemented,
         createDaemon: notImplemented,
         setupDaemon: notImplemented,
         listDaemonsByRegion: notImplemented,
-        getIncompleteDaemonIdByApiKeyHash: notImplemented,
 
         getIpv4: notImplemented,
         getIpv4ByIp: notImplemented,
