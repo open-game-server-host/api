@@ -1,6 +1,7 @@
-import { BodyRequest, respond } from "@open-game-server-host/backend-lib";
+import { BodyRequest, OGSHError, respond } from "@open-game-server-host/backend-lib";
 import { Router } from "express";
 import { daemonAuthMiddleware, DaemonResponse } from "../../auth/daemonAuth.js";
+import { hashDaemonApiKey } from "../../daemon/daemon.js";
 import { DATABASE } from "../../db/db.js";
 import { SetupDaemonData } from "../../interfaces/daemon.js";
 
@@ -18,11 +19,16 @@ daemonHttpRouter.post("/:daemonId/setup", async (req: BodyRequest<SetupDaemonDat
     respond(res, daemon);
 });
 
-// daemonHttpRouter.get("/:daemonId", async (req, res) => {
-//     const daemonId = req.params.daemonId;
-//     const daemon = await DATABASE.getDaemon(daemonId);
-//     respond(res, daemon);
-// });
+daemonHttpRouter.get("/", async (req, res) => {
+    // This endpoint is solely for the daemon installation script to check if an API key is valid and to retrieve its ID as a plain string so it doesn't have to parse anything
+    const apiKey = req.headers.authorization;
+    if (!apiKey) {
+        throw new OGSHError("auth/invalid", `'authorization' header not provided`);
+    }
+    const hash = hashDaemonApiKey(apiKey);
+    const daemonId = await DATABASE.getIncompleteDaemonIdByApiKeyHash(hash).catch(error => ""); // TODO log error
+    res.send(daemonId);
+});
 
 daemonHttpRouter.post("/:daemonId/containers", daemonAuthMiddleware, async (req, res: DaemonResponse) => {
     const containers = await DATABASE.listActiveContainersByDaemon(res.locals.daemon.id);

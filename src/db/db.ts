@@ -27,6 +27,7 @@ export interface Database {
     setupDaemon(daemonId: string, data: SetupDaemonData): Promise<Daemon>;
     listDaemonsByRegion(regionId: string): Promise<Daemon[]>; // TODO paginate
     listSetupIncompleteDaemons(): Promise<SetupIncompleteDaemon[]>; // TODO paginate
+    getIncompleteDaemonIdByApiKeyHash(apiKeyHash: string): Promise<string>;
 
     getIpv4(ipId: string): Promise<Ip>;
     getIpv4ByIp(ipv4: string): Promise<Ip>;
@@ -76,6 +77,7 @@ function createLocalDb(): Database {
         setupDaemon: daemonDb.setupDaemon.bind(daemonDb),
         listDaemonsByRegion: daemonDb.listDaemonsByRegion.bind(daemonDb),
         listSetupIncompleteDaemons: daemonDb.listSetupIncompleteDaemons.bind(daemonDb),
+        getIncompleteDaemonIdByApiKeyHash: daemonDb.getIncompleteDaemonIdByApiKeyHash.bind(daemonDb),
 
         getIpv4: ipv4Db.getIpv4.bind(ipv4Db),
         getIpv4ByIp: ipv4Db.getIpv4ByIp.bind(ipv4Db),
@@ -96,37 +98,38 @@ function createLocalDb(): Database {
 }
 
 function createPostgresDb(): Database {
-    function notImplemented<T>(): Promise<T> {
+    function notImplemented(): Promise<any> {
         throw new Error("not implemented");
     }
 
     return {
-        createContainer: notImplemented<Container>,
-        terminateContainer: notImplemented<Container>,
-        getContainer: notImplemented<Container>,
-        listActiveContainersByDaemon: notImplemented<Container[]>,
-        listActiveContainersByUser: notImplemented<Container[]>,
-        listSetupIncompleteDaemons: notImplemented<SetupIncompleteDaemon[]>,
+        createContainer: notImplemented,
+        terminateContainer: notImplemented,
+        getContainer: notImplemented,
+        listActiveContainersByDaemon: notImplemented,
+        listActiveContainersByUser: notImplemented,
+        listSetupIncompleteDaemons: notImplemented,
 
-        getDaemon: notImplemented<Daemon>,
-        createDaemon: notImplemented<SetupIncompleteDaemon & { apiKey: string }>,
-        setupDaemon: notImplemented<Daemon>,
-        listDaemonsByRegion: notImplemented<Daemon[]>,
+        getDaemon: notImplemented,
+        createDaemon: notImplemented,
+        setupDaemon: notImplemented,
+        listDaemonsByRegion: notImplemented,
+        getIncompleteDaemonIdByApiKeyHash: notImplemented,
 
-        getIpv4: notImplemented<Ip>,
-        getIpv4ByIp: notImplemented<Ip>,
-        listIpv4s: notImplemented<Ip[]>,
+        getIpv4: notImplemented,
+        getIpv4ByIp: notImplemented,
+        listIpv4s: notImplemented,
 
-        getIpv6: notImplemented<Ip>,
-        getIpv6ByIp: notImplemented<Ip>,
-        listIpv6s: notImplemented<Ip[]>,
+        getIpv6: notImplemented,
+        getIpv6ByIp: notImplemented,
+        listIpv6s: notImplemented,
 
-        getRegion: notImplemented<Region>,
-        createRegion: notImplemented<Region>,
-        listRegions: notImplemented<Region[]>,
+        getRegion: notImplemented,
+        createRegion: notImplemented,
+        listRegions: notImplemented,
 
-        doesUserExist: notImplemented<boolean>,
-        getUser: notImplemented<User>,
-        createUser: notImplemented<User>
+        doesUserExist: notImplemented,
+        getUser: notImplemented,
+        createUser: notImplemented
     }
 }

@@ -24,8 +24,8 @@ function generateRawApiKey(): string {
     return crypto.randomBytes(32).toString("hex");
 }
 
-function generateApiKeyHash(key: string): string {
-    return crypto.createHmac("sha256", daemonSigningKey).update(key).digest("hex");
+export function hashDaemonApiKey(apiKey: string): string {
+    return crypto.createHmac("sha256", daemonSigningKey).update(apiKey).digest("hex");
 }
 
 interface DaemonApikey {
@@ -36,7 +36,7 @@ export function generateDaemonApiKey(): DaemonApikey {
     const apiKey = generateRawApiKey();
     return {
         apiKey,
-        hash: generateApiKeyHash(apiKey)
+        hash: hashDaemonApiKey(apiKey)
     }
 }
 
@@ -47,5 +47,5 @@ export function isDaemonApiKeyValid(providedApiKey: string, storedHash: Daemon |
     } else {
         hash = storedHash.apiKeyHash;
     }
-    return generateApiKeyHash(providedApiKey) === hash;
+    return hashDaemonApiKey(providedApiKey) === hash;
 }
