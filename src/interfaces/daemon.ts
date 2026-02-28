@@ -4,6 +4,7 @@ export interface CreateDaemonData {
 }
 
 export interface SetupIncompleteDaemon {
+    apiKeyHash: string;
     createdAt: number;
     id: string;
     setupComplete: boolean;

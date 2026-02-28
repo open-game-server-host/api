@@ -53,7 +53,17 @@ export class LocalDaemonDb extends LocalDb implements Partial<Database> {
     async getDaemonByApiKeyHash(apiKeyHash: string): Promise<Daemon | SetupIncompleteDaemon> {
         for (const daemon of this.listJsonFiles<DaemonLocalDbFile>("daemon")) {
             if (daemon.data.apiKeyHash === apiKeyHash) {
-                return this.getDaemon(daemon.id);
+                if (daemon.data.setupComplete) {
+                    return this.getDaemon(daemon.id);
+                } else {
+                    const incomplete: SetupIncompleteDaemon = {
+                        apiKeyHash: daemon.data.apiKeyHash,
+                        createdAt: daemon.data.createdAt,
+                        id: daemon.id,
+                        setupComplete: false
+                    }
+                    return incomplete;
+                }
             }
         }
         throw new OGSHError("general/unspecified", `no daemon found with provided api key hash`);
@@ -72,6 +82,7 @@ export class LocalDaemonDb extends LocalDb implements Partial<Database> {
         return {
             id,
             apiKey: key.apiKey,
+            apiKeyHash: key.hash,
             createdAt: data.createdAt,
             setupComplete: data.setupComplete
         }

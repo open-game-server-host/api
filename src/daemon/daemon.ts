@@ -1,5 +1,6 @@
 import { Daemon, parseEnvironmentVariables } from "@open-game-server-host/backend-lib";
 import crypto from "crypto";
+import { SetupIncompleteDaemon } from "../interfaces/daemon.js";
 
 export type SegmentReserveMethod = 
     | "fifo"
@@ -40,7 +41,7 @@ export function generateDaemonApiKey(): DaemonApikey {
     }
 }
 
-export function isDaemonApiKeyValid(providedApiKey: string, storedHash: Daemon | string): boolean {
+export function isDaemonApiKeyValid(providedApiKey: string, storedHash: Daemon | SetupIncompleteDaemon | string): boolean {
     let hash: string;
     if (typeof storedHash === "string") {
         hash = storedHash;
