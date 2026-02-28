@@ -90,10 +90,10 @@ export class LocalDaemonDb extends LocalDb implements Partial<Database> {
         const raw = this.readJsonFile<DaemonLocalDbFile>("daemon", daemonId);
         this.writeJsonFile<DaemonLocalDbFile>("daemon", daemonId, {
             ...raw,
-            cpuArch: data.cpuArch,
-            cpuName: data.cpuName,
-            os: data.os,
-            segmentsMax: data.segmentsMax
+            cpuArch: data.cpuArch || raw.cpuArch,
+            cpuName: data.cpuName || raw.cpuName,
+            os: data.os || raw.os,
+            segmentsMax: data.segmentsMax || raw.segmentsMax
         });
     }
     

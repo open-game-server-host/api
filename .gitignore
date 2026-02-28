@@ -4,3 +4,4 @@ package-lock.json
 localdb/
 origin.crt
 private.key
+.vscode/

@@ -11,10 +11,10 @@ export interface SetupIncompleteDaemon {
 }
 
 export interface UpdateDaemonData {
-    cpuArch: string;
-    cpuName: string;
-    os: string;
-    segmentsMax: number;
+    cpuArch?: string;
+    cpuName?: string;
+    os?: string;
+    segmentsMax?: number;
 }
 
 export interface SetupDaemonData {
