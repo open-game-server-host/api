@@ -1,7 +1,7 @@
 import { Container, Daemon, Ip, OGSHError, Region, User } from "@open-game-server-host/backend-lib";
 import { getDbType } from "../env.js";
 import { CreateContainerData } from "../interfaces/container.js";
-import { SetupDaemonData, SetupIncompleteDaemon } from "../interfaces/daemon.js";
+import { SetupDaemonData, SetupIncompleteDaemon, UpdateDaemonData } from "../interfaces/daemon.js";
 import { CreateRegionData } from "../interfaces/region.js";
 import { LocalContainerDb } from "./local/localContainerDb.js";
 import { LocalDaemonDb } from "./local/localDaemonDb.js";
@@ -25,7 +25,8 @@ export interface Database {
     getDaemon(daemonId: string): Promise<Daemon>;
     getDaemonByApiKeyHash(apiKeyHash: string): Promise<Daemon | SetupIncompleteDaemon>;
     createDaemon(): Promise<SetupIncompleteDaemon & { apiKey: string }>;
-    setupDaemon(daemonId: string, data: SetupDaemonData): Promise<Daemon>;
+    updateDaemon(daemonId: string, data: UpdateDaemonData): Promise<void>;
+    setupDaemon(daemonId: string, data: SetupDaemonData): Promise<void>;
     listDaemonsByRegion(regionId: string): Promise<Daemon[]>; // TODO paginate
     listSetupIncompleteDaemons(): Promise<SetupIncompleteDaemon[]>; // TODO paginate
 
@@ -75,6 +76,7 @@ function createLocalDb(): Database {
         getDaemon: daemonDb.getDaemon.bind(daemonDb),
         getDaemonByApiKeyHash: daemonDb.getDaemonByApiKeyHash.bind(daemonDb),
         createDaemon: daemonDb.createDaemon.bind(daemonDb),
+        updateDaemon: daemonDb.updateDaemon.bind(daemonDb),
         setupDaemon: daemonDb.setupDaemon.bind(daemonDb),
         listDaemonsByRegion: daemonDb.listDaemonsByRegion.bind(daemonDb),
         listSetupIncompleteDaemons: daemonDb.listSetupIncompleteDaemons.bind(daemonDb),
@@ -113,6 +115,7 @@ function createPostgresDb(): Database {
         getDaemon: notImplemented,
         getDaemonByApiKeyHash: notImplemented,
         createDaemon: notImplemented,
+        updateDaemon: notImplemented,
         setupDaemon: notImplemented,
         listDaemonsByRegion: notImplemented,
 

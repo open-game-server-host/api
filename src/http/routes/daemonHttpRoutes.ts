@@ -2,7 +2,7 @@ import { BodyRequest, respond, sanitiseDaemon } from "@open-game-server-host/bac
 import { Router } from "express";
 import { daemonAuthMiddleware, DaemonResponse } from "../../auth/daemonAuth.js";
 import { DATABASE } from "../../db/db.js";
-import { SetupDaemonData } from "../../interfaces/daemon.js";
+import { SetupDaemonData, UpdateDaemonData } from "../../interfaces/daemon.js";
 
 export const daemonHttpRouter = Router();
 
@@ -12,9 +12,15 @@ daemonHttpRouter.post("/", async (req, res) => {
     respond(res, daemon);
 });
 
-daemonHttpRouter.post("/setup", daemonAuthMiddleware, async (req: BodyRequest<SetupDaemonData>, res: DaemonResponse) => {
-    const daemon = await DATABASE.setupDaemon(req.params.daemonId, req.body);
-    respond(res, sanitiseDaemon(daemon));
+daemonHttpRouter.post("/update", daemonAuthMiddleware, async (req: BodyRequest<UpdateDaemonData>, res: DaemonResponse) => {
+    await DATABASE.updateDaemon(res.locals.daemon.id, req.body);
+    respond(res);
+});
+
+// TODO this should be executed by a person with correct permissions
+daemonHttpRouter.post("/setup/:daemonId", async (req: BodyRequest<SetupDaemonData>, res) => {
+    await DATABASE.setupDaemon(req.params.daemonId, req.body);
+    respond(res);
 });
 
 daemonHttpRouter.get("/", daemonAuthMiddleware, async (req, res) => {

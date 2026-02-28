@@ -10,16 +10,16 @@ export interface SetupIncompleteDaemon {
     setupComplete: boolean;
 }
 
-export interface SetupDaemonData {
+export interface UpdateDaemonData {
     cpuArch: string;
     cpuName: string;
-    ipv4?: string;
-    ipv6?: string;
-    ipv4PortRangeStart?: number;
-    ipv4PortRangeEnd?: number;
-    ipv6PortRangeStart?: number;
-    ipv6PortRangeEnd?: number;
     os: string;
+    segmentsMax: number;
+}
+
+export interface SetupDaemonData {
     regionId: string;
     segments: number;
+    portRangeStart: number;
+    portRangeEnd: number;
 }
