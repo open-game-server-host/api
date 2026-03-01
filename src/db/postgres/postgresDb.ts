@@ -112,8 +112,8 @@ export abstract class PostgresDb implements PostgresClient {
     }
 }
 
-class PostgresTransaction implements PostgresClient {
-    private finished = false;
+export class PostgresTransaction implements PostgresClient {
+    finished = false;
 
     constructor(private readonly client: PoolClient) {
 
@@ -121,7 +121,7 @@ class PostgresTransaction implements PostgresClient {
 
     private checkFinished() {
         if (this.finished) {
-            throw new OGSHError("general/unspecified", `transaction finished`);
+            throw new OGSHError("general/unspecified", `transaction already finished`);
         }
     }
 
@@ -139,6 +139,7 @@ class PostgresTransaction implements PostgresClient {
         this.checkFinished();
         const result = await this.query(statement, ...args);
         if (result.rowCount === 0 || !result.rows[0].count) {
+            this.cancel();
             throw new OGSHError("general/unspecified", `countQuery function did not produce a "count" row, statement: '${statement}'`);
         }
         const count = +result.rows[0].count;
