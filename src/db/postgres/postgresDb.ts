@@ -1,5 +1,5 @@
 import { Logger, OGSHError, parseEnvironmentVariables } from "@open-game-server-host/backend-lib";
-import { Pool, QueryResult } from "pg";
+import { Pool, PoolClient, QueryResult } from "pg";
 
 const hostKey = "OGSH_POSTGRES_HOST";
 const portKey = "OGSH_POSTGRES_PORT";
@@ -63,7 +63,12 @@ async function createPool(logger: Logger): Promise<Pool> {
     return pool;
 }
 
-export abstract class PostgresDb {
+export interface PostgresClient {
+    query(statement: string, ...args: any[]): Promise<QueryResult>;
+    countQuery(statement: string, ...args: any[]): Promise<number>;
+}
+
+export abstract class PostgresDb implements PostgresClient {
     private static logger = new Logger();
     private static pool: Promise<Pool> = createPool(PostgresDb.logger);
 
@@ -74,7 +79,7 @@ export abstract class PostgresDb {
         });
     }
 
-    protected async query(statement: string, ...args: any[]): Promise<QueryResult> {
+    async query(statement: string, ...args: any[]): Promise<QueryResult> {
         const client = await (await PostgresDb.pool).connect();
         return client.query(statement, args).then(result => {
             client.release();
@@ -85,7 +90,7 @@ export abstract class PostgresDb {
         });
     }
 
-    protected async countQuery(statement: string, ...args: any[]): Promise<number> {
+    async countQuery(statement: string, ...args: any[]): Promise<number> {
         const result = await this.query(statement, ...args);
         if (result.rowCount === 0 || !result.rows[0].count) {
             throw new OGSHError("general/unspecified", `countQuery function did not produce a "count" row, statement: '${statement}'`);
@@ -95,5 +100,66 @@ export abstract class PostgresDb {
             throw new OGSHError("general/unspecified", `"count" was not an integer, statement: '${statement}'`);
         }
         return count;
+    }
+
+    protected async startTransaction(): Promise<PostgresTransaction> {
+        const client = await (await PostgresDb.pool).connect();
+        await client.query("BEGIN").catch(error => {
+            client.release();
+            throw new OGSHError("general/unspecified", error);
+        });
+        return new PostgresTransaction(client);
+    }
+}
+
+class PostgresTransaction implements PostgresClient {
+    private finished = false;
+
+    constructor(private readonly client: PoolClient) {
+
+    }
+
+    private checkFinished() {
+        if (this.finished) {
+            throw new OGSHError("general/unspecified", `transaction finished`);
+        }
+    }
+
+    async query(statement: string, ...args: any[]): Promise<QueryResult> {
+        this.checkFinished();
+        return this.client.query(statement, args).then(result => {
+            return result;
+        }).catch(error => {
+            this.cancel();
+            throw new OGSHError("general/unspecified", error);
+        });
+    }
+
+    async countQuery(statement: string, ...args: any[]): Promise<number> {
+        this.checkFinished();
+        const result = await this.query(statement, ...args);
+        if (result.rowCount === 0 || !result.rows[0].count) {
+            throw new OGSHError("general/unspecified", `countQuery function did not produce a "count" row, statement: '${statement}'`);
+        }
+        const count = +result.rows[0].count;
+        if (!Number.isInteger(count)) {
+            this.cancel();
+            throw new OGSHError("general/unspecified", `"count" was not an integer, statement: '${statement}'`);
+        }
+        return count;
+    }
+
+    async finish() {
+        this.checkFinished();
+        this.finished = true;
+        await this.query("COMMIT");
+        this.client.release();
+    }
+
+    async cancel() {
+        this.checkFinished();
+        this.finished = true;
+        await this.query("ROLLBACK");
+        this.client.release();
     }
 }

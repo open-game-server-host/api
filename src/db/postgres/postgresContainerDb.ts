@@ -3,7 +3,7 @@ import { QueryResult } from "pg";
 import { segmentReserveMethod, SegmentReserveMethod } from "../../daemon/daemon.js";
 import { CreateContainerData } from "../../interfaces/container.js";
 import { Database } from "../db.js";
-import { PostgresDb } from "./postgresDb.js";
+import { PostgresClient, PostgresDb } from "./postgresDb.js";
 
 export class PostgresContainerDb extends PostgresDb implements Partial<Database> {
     private convertRowToContainer(row: any): Container {
@@ -76,11 +76,11 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
         return this.convertRowToContainer(row);
     }
 
-    private async reserveSegments(reserveMethod: SegmentReserveMethod, regionId: string, segments: number): Promise<string> {
+    private async reserveSegments(client: PostgresClient, reserveMethod: SegmentReserveMethod, regionId: string, segments: number): Promise<string> {
         let result: Promise<QueryResult>;
         switch (reserveMethod) {
             case "fifo":
-                result = this.query(`
+                result = client.query(`
                     UPDATE daemons SET segments_available = segments_available - $1
                     WHERE id = (
                         SELECT id FROM daemons
@@ -94,7 +94,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
                     regionId);
                 break;
             case "balanced":
-                result = this.query(`
+                result = client.query(`
                     UPDATE daemons SET segments_available = segments_available - $1
                     WHERE id = (
                         SELECT id FROM daemons
@@ -121,9 +121,9 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
         if (!version) {
             throw new OGSHError("app/version-not-found", `cannot create container with app id '${data.appId}' variant id '${data.variantId}' version id '${data.versionId}'`);
         }
-        await this.query("BEGIN");
-        const daemonId = await this.reserveSegments(segmentReserveMethod, data.regionId, data.segments);
-        const result = await this.query(`
+        const client = await this.startTransaction();
+        const daemonId = await this.reserveSegments(client, segmentReserveMethod, data.regionId, data.segments);
+        const result = await client.query(`
             INSERT INTO containers (
                 app_id,
                 variant_id,
@@ -159,12 +159,14 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
             data.segments, // 8
             data.userId, // 9
             daemonId // 10
-        );
+        ).catch(error => {
+            throw error;
+        });
         if (result.rowCount === 0) {
-            await this.query("ROLLBACK");
+            await client.cancel();
             throw new OGSHError("general/unspecified", `could not create container`);
         }
-        await this.query("COMMIT");
+        await client.finish();
         const id = `${result.rows[0].id}`;
         return this.getContainer(id);
     }
