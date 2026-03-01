@@ -1,4 +1,4 @@
-import { Container, Daemon, Ip, OGSHError, Region, User } from "@open-game-server-host/backend-lib";
+import { Container, Daemon, Ip, OGSHError, Region, UpdateDaemonData, User } from "@open-game-server-host/backend-lib";
 import { getDbType } from "../env.js";
 import { CreateContainerData } from "../interfaces/container.js";
 import { SetupDaemonData, SetupIncompleteDaemon } from "../interfaces/daemon.js";
@@ -28,8 +28,10 @@ export interface Database {
     // logContainerAction(containerId: string, action: string, data: string): Promise<void>;
 
     getDaemon(daemonId: string): Promise<Daemon>;
+    getDaemonByApiKeyHash(apiKeyHash: string): Promise<Daemon | SetupIncompleteDaemon>;
     createDaemon(): Promise<SetupIncompleteDaemon & { apiKey: string }>;
-    setupDaemon(daemonId: string, data: SetupDaemonData): Promise<Daemon>;
+    updateDaemon(daemonId: string, data: UpdateDaemonData): Promise<void>;
+    setupDaemon(daemonId: string, data: SetupDaemonData): Promise<void>;
     listDaemonsByRegion(regionId: string): Promise<Daemon[]>; // TODO paginate
     listSetupIncompleteDaemons(): Promise<SetupIncompleteDaemon[]>; // TODO paginate
 
@@ -70,14 +72,16 @@ function createLocalDb(): Database {
     const userDb = new LocalUserDb();
 
     return {
+        getContainer: containerDb.getContainer.bind(containerDb),
         createContainer: containerDb.createContainer.bind(containerDb),
         terminateContainer: containerDb.terminateContainer.bind(containerDb),
-        getContainer: containerDb.getContainer.bind(containerDb),
         listActiveContainersByDaemon: containerDb.listActiveContainersByDaemon.bind(containerDb),
         listActiveContainersByUser: containerDb.listActiveContainersByUser.bind(containerDb),
         
         getDaemon: daemonDb.getDaemon.bind(daemonDb),
+        getDaemonByApiKeyHash: daemonDb.getDaemonByApiKeyHash.bind(daemonDb),
         createDaemon: daemonDb.createDaemon.bind(daemonDb),
+        updateDaemon: daemonDb.updateDaemon.bind(daemonDb),
         setupDaemon: daemonDb.setupDaemon.bind(daemonDb),
         listDaemonsByRegion: daemonDb.listDaemonsByRegion.bind(daemonDb),
         listSetupIncompleteDaemons: daemonDb.listSetupIncompleteDaemons.bind(daemonDb),
@@ -109,14 +113,16 @@ function createPostgresDb(): Database {
     const userDb = new PostgresUserDb();
 
     return {
+        getContainer: containerDb.getContainer.bind(containerDb),
         createContainer: containerDb.createContainer.bind(containerDb),
         terminateContainer: containerDb.terminateContainer.bind(containerDb),
-        getContainer: containerDb.getContainer.bind(containerDb),
         listActiveContainersByDaemon: containerDb.listActiveContainersByDaemon.bind(containerDb),
         listActiveContainersByUser: containerDb.listActiveContainersByUser.bind(containerDb),
         
         getDaemon: daemonDb.getDaemon.bind(daemonDb),
+        getDaemonByApiKeyHash: daemonDb.getDaemonByApiKeyHash.bind(daemonDb),
         createDaemon: daemonDb.createDaemon.bind(daemonDb),
+        updateDaemon: daemonDb.updateDaemon.bind(daemonDb),
         setupDaemon: daemonDb.setupDaemon.bind(daemonDb),
         listDaemonsByRegion: daemonDb.listDaemonsByRegion.bind(daemonDb),
         listSetupIncompleteDaemons: daemonDb.listSetupIncompleteDaemons.bind(daemonDb),

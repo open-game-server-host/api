@@ -3,7 +3,7 @@ import express from "express";
 import { readFileSync } from "fs";
 import https from "https";
 import { userAuthMiddleware } from "../auth/userAuth.js";
-import { getTlsCertPath, getTlsKeyPath } from "../env.js";
+import { getPort, getTlsCertPath, getTlsKeyPath } from "../env.js";
 import { wsServer } from "../ws/wsServer.js";
 import { appHttpRouter } from "./routes/appHttpRoutes.js";
 import { containerHttpRouter } from "./routes/containerHttpRoutes.js";
@@ -32,10 +32,9 @@ export async function initHttpServer(logger: Logger) {
         });
     });
 
-    const port = 8080;
     await new Promise<void>(res => {
-        server.listen(port, () => {
-            logger.info(`Started http server on port ${port}`);
+        server.listen(getPort(), () => {
+            logger.info(`Started http server on port ${getPort()}`);
             res();
         });
     });
