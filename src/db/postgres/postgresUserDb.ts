@@ -14,15 +14,14 @@ export class PostgresUserDb extends PostgresDb implements Partial<Database> {
         }
         const row = result.rows[0];
         return {
-            authUid: row.authuid,
-            createdAt: +row.createdat,
+            authUid: row.auth_uid,
+            createdAt: +row.created_at,
             id: `${row.id}`,
             permissions: [] // TODO
         }
     }
 
     async createUser(authUid: string): Promise<User> {
-        console.log(`3 ${authUid}`);
         const result = await this.query("INSERT INTO users (auth_uid) VALUES ($1)", authUid);
         if (result.rowCount === 0) {
             throw new OGSHError("general/unspecified", `authUid '${authUid}' already exists`);

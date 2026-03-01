@@ -25,10 +25,7 @@ function createAuth(): Auth {
 
 function createNoneAuth(): Auth {
     return {
-        validateUser: async (token: string) => {
-            console.log(`1 ${token}`);
-            return token;
-         } // Use token as authUid
+        validateUser: async (token: string) => token // Use token as authUid
     }
 }
 
