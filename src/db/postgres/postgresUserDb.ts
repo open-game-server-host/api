@@ -22,6 +22,7 @@ export class PostgresUserDb extends PostgresDb implements Partial<Database> {
     }
 
     async createUser(authUid: string): Promise<User> {
+        console.log(`3 ${authUid}`);
         const result = await this.query("INSERT INTO users (authUid) VALUES ($1)", authUid);
         if (result.rowCount === 0) {
             throw new OGSHError("general/unspecified", `authUid '${authUid}' already exists`);

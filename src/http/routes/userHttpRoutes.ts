@@ -12,6 +12,7 @@ meHttpRouter.get("/", async (req, res: UserResponse) => {
 });
 
 meHttpRouter.post("/", async (req, res: UserResponse) => {
+    console.log(2);
     respond(res, await DATABASE.createUser(res.locals.authUid));
 });
 
