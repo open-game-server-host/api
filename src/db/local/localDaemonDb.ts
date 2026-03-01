@@ -66,7 +66,7 @@ export class LocalDaemonDb extends LocalDb implements Partial<Database> {
         throw new OGSHError("general/unspecified", `no daemon found with provided api key hash`);
     }
 
-    async createDaemon(): Promise<SetupIncompleteDaemon & { apiKey: string }> {
+    async createDaemon(): Promise<string> {
         const id = this.createUniqueId("daemon");
         const key = generateDaemonApiKey();
         const data: DaemonLocalDbFile = {
@@ -76,13 +76,7 @@ export class LocalDaemonDb extends LocalDb implements Partial<Database> {
             setupComplete: false
         }
         this.writeJsonFile<DaemonLocalDbFile>("daemon", id, data);
-        return {
-            id,
-            apiKey: key.apiKey,
-            apiKeyHash: key.hash,
-            createdAt: data.createdAt,
-            setupComplete: data.setupComplete
-        }
+        return key.apiKey;
     }
 
     async updateDaemon(daemonId: string, data: UpdateDaemonData) {

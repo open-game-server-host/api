@@ -29,7 +29,7 @@ export interface Database {
 
     getDaemon(daemonId: string): Promise<Daemon>;
     getDaemonByApiKeyHash(apiKeyHash: string): Promise<Daemon | SetupIncompleteDaemon>;
-    createDaemon(): Promise<SetupIncompleteDaemon & { apiKey: string }>;
+    createDaemon(): Promise<string>; // Returns API key
     updateDaemon(daemonId: string, data: UpdateDaemonData): Promise<void>;
     setupDaemon(daemonId: string, data: SetupDaemonData): Promise<void>;
     listDaemonsByRegion(regionId: string): Promise<Daemon[]>; // TODO paginate

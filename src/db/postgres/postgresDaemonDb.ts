@@ -84,25 +84,20 @@ export class PostgresDaemonDb extends PostgresDb implements Partial<Database> {
         return this.convertRowToDaemon(row);
     }
 
-    async createDaemon(): Promise<SetupIncompleteDaemon & { apiKey: string; }> {
-        const apiKey = generateDaemonApiKey();
+    async createDaemon(): Promise<string> {
+        const key = generateDaemonApiKey();
         const result = await this.query(`
             INSERT INTO daemons (
                 api_key_hash
             )
             VALUES (
                 $1
-            )
-            RETURNING id`,
-            apiKey.hash);
+            )`,
+            key.hash);
         if (result.rowCount === 0) {
             throw new OGSHError("general/unspecified", `failed to create daemon record`);
         }
-        const id = `${result.rows[0].id}`;
-        return {
-            ...await this.getDaemon(id),
-            apiKey: apiKey.apiKey
-        }
+        return key.apiKey;
     }
 
     async updateDaemon(daemonId: string, data: UpdateDaemonData) {
