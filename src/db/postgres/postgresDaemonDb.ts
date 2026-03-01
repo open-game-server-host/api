@@ -48,7 +48,7 @@ export class PostgresDaemonDb extends PostgresDb implements Partial<Database> {
             FROM daemons d
             LEFT JOIN ipv4 v4 ON d.ipv4_id = v4.id
             LEFT JOIN ipv6 v6 ON d.ipv6_id = v6.id
-            JOIN regions r ON d.region_id = r.id
+            LEFT JOIN regions r ON d.region_id = r.id
             WHERE
                 d.id = $1
             LIMIT 1`,
@@ -72,13 +72,12 @@ export class PostgresDaemonDb extends PostgresDb implements Partial<Database> {
             FROM daemons d
             LEFT JOIN ipv4 v4 ON d.ipv4_id = v4.id
             LEFT JOIN ipv6 v6 ON d.ipv6_id = v6.id
-            JOIN regions r ON d.region_id = r.id
+            LEFT JOIN regions r ON d.region_id = r.id
             WHERE
                 d.api_key_hash = $1
             LIMIT 1`,
             apiKeyHash);
         if (result.rowCount === 0) {
-            console.log(`hash: '${apiKeyHash}'`);
             throw new OGSHError("general/unspecified", `daemon not found by hash`);
         }
         const row = result.rows[0];
@@ -155,7 +154,7 @@ export class PostgresDaemonDb extends PostgresDb implements Partial<Database> {
             FROM daemons d
             LEFT JOIN ipv4 v4 ON d.ipv4_id = v4.id
             LEFT JOIN ipv6 v6 ON d.ipv6_id = v6.id
-            JOIN regions r ON d.region_id = r.id
+            LEFT JOIN regions r ON d.region_id = r.id
             WHERE
                 d.region_id = $1
             LIMIT 1`,
@@ -179,7 +178,7 @@ export class PostgresDaemonDb extends PostgresDb implements Partial<Database> {
             FROM daemons d
             LEFT JOIN ipv4 v4 ON d.ipv4_id = v4.id
             LEFT JOIN ipv6 v6 ON d.ipv6_id = v6.id
-            JOIN regions r ON d.region_id = r.id
+            LEFT JOIN regions r ON d.region_id = r.id
             WHERE
                 d.setup_complete = FALSE
             LIMIT 1`);
