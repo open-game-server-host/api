@@ -15,8 +15,8 @@ export async function userAuthMiddleware(req: Request, res: UserResponse, next: 
 
 export async function authenticateUser(input: Request | string): Promise<AuthUid> {
     let token: string = input as string;
-    if (input instanceof Request) {
-        const authHeader = input.headers.get("authorization");
+    if (typeof input !== "string") {
+        const authHeader = (input as Request).headers.authorization;
         if (!authHeader) {
             throw new OGSHError("auth/invalid", `'authorization: bearer' header missing`);
         }
