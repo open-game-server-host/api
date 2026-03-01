@@ -36,7 +36,7 @@ CREATE TABLE daemons (
     ipv6_port_range_start INTEGER DEFAULT NULL,
     ipv6_port_range_end INTEGER DEFAULT NULL,
     os VARCHAR(10) DEFAULT NULL,
-    region_id INTEGER NOT NULL REFERENCES regions(id) ON DELETE RESTRICT,
+    region_id INTEGER DEFAULT NULL REFERENCES regions(id) ON DELETE RESTRICT,
     segments INTEGER DEFAULT NULL,
     segments_available INTEGER DEFAULT NULL,
     setup_complete BOOLEAN DEFAULT FALSE,
