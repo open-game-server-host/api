@@ -8,7 +8,7 @@ export class PostgresUserDb extends PostgresDb implements Partial<Database> {
     }
 
     async getUser(authUid: string): Promise<User> {
-        const result = await this.query("SELECT * FROM users WHERE authUid = $1 LIMIT 1", authUid);
+        const result = await this.query("SELECT * FROM users WHERE auth_uid = $1 LIMIT 1", authUid);
         if (result.rowCount === 0) {
             throw new OGSHError("general/unspecified", `user with authUid '${authUid}' not found`);
         }
@@ -23,7 +23,7 @@ export class PostgresUserDb extends PostgresDb implements Partial<Database> {
 
     async createUser(authUid: string): Promise<User> {
         console.log(`3 ${authUid}`);
-        const result = await this.query("INSERT INTO users (authUid) VALUES ($1)", authUid);
+        const result = await this.query("INSERT INTO users (auth_uid) VALUES ($1)", authUid);
         if (result.rowCount === 0) {
             throw new OGSHError("general/unspecified", `authUid '${authUid}' already exists`);
         }
