@@ -1,6 +1,6 @@
-import { Daemon, OGSHError } from "@open-game-server-host/backend-lib";
+import { Daemon, OGSHError, UpdateDaemonData } from "@open-game-server-host/backend-lib";
 import { generateDaemonApiKey } from "../../daemon/daemon.js";
-import { SetupDaemonData, SetupIncompleteDaemon, UpdateDaemonData } from "../../interfaces/daemon.js";
+import { SetupDaemonData, SetupIncompleteDaemon } from "../../interfaces/daemon.js";
 import { DATABASE, Database } from "../db.js";
 import { LocalDb } from "./localDb.js";
 

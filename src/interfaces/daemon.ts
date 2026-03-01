@@ -10,13 +10,6 @@ export interface SetupIncompleteDaemon {
     setupComplete: boolean;
 }
 
-export interface UpdateDaemonData {
-    cpuArch?: string;
-    cpuName?: string;
-    os?: string;
-    segmentsMax?: number;
-}
-
 export interface SetupDaemonData {
     regionId: string;
     segments: number;

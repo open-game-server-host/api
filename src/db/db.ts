@@ -1,7 +1,7 @@
-import { Container, Daemon, Ip, OGSHError, Region, User } from "@open-game-server-host/backend-lib";
+import { Container, Daemon, Ip, OGSHError, Region, UpdateDaemonData, User } from "@open-game-server-host/backend-lib";
 import { getDbType } from "../env.js";
 import { CreateContainerData } from "../interfaces/container.js";
-import { SetupDaemonData, SetupIncompleteDaemon, UpdateDaemonData } from "../interfaces/daemon.js";
+import { SetupDaemonData, SetupIncompleteDaemon } from "../interfaces/daemon.js";
 import { CreateRegionData } from "../interfaces/region.js";
 import { LocalContainerDb } from "./local/localContainerDb.js";
 import { LocalDaemonDb } from "./local/localDaemonDb.js";
