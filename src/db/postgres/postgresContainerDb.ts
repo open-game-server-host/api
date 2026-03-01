@@ -122,9 +122,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
             throw new OGSHError("app/version-not-found", `cannot create container with app id '${data.appId}' variant id '${data.variantId}' version id '${data.versionId}'`);
         }
         const client = await this.startTransaction();
-        console.log(`1 finished? ${(client as PostgresTransaction).finished}`);
         const daemonId = await this.reserveSegments(client, segmentReserveMethod, data.regionId, data.segments);
-        console.log(`2 finished? ${(client as PostgresTransaction).finished}`);
         const result = await client.query(`
             INSERT INTO containers (
                 app_id,
@@ -164,12 +162,10 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
         ).catch(error => {
             throw error;
         });
-        console.log(`3 finished? ${(client as PostgresTransaction).finished}`);
         if (result.rowCount === 0) {
             await client.cancel();
             throw new OGSHError("general/unspecified", `could not create container`);
         }
-        console.log(`4 finished? ${(client as PostgresTransaction).finished}`);
         await client.finish();
         const id = `${result.rows[0].id}`;
         return this.getContainer(id);
