@@ -65,7 +65,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
             LEFT JOIN ipv6 v6 ON d.ipv6_id = v6.id
             JOIN regions r ON d.region_id = r.id
             WHERE
-                id=$1
+                id = $1
             LIMIT 1`,
             containerId);
         if (result.rowCount === 0) {
@@ -75,38 +75,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
         return this.convertRowToContainer(row);
     }
 
-    private getReserveSegmentsQuery(reserveMethod: SegmentReserveMethod, argIndex: number): string {
-        switch (reserveMethod) {
-            case "fifo":
-                return `
-                    UPDATE daemons SET segments_available = segments_available - $${++argIndex}
-                    WHERE id = (
-                        SELECT id FROM daemons
-                        WHERE
-                            region_id = $${++argIndex}
-                            AND segments_available >= $${argIndex - 1}
-                        LIMIT 1
-                    )
-                    RETURNING id`;
-            case "balanced":
-                return `
-                    UPDATE daemons SET segments_available = segments_available - $${++argIndex}
-                    WHERE id = (
-                        SELECT id FROM daemons
-                        WHERE
-                            region_id = $${++argIndex}
-                            AND segments_available >= $${argIndex - 1}
-                        ORDER BY segments_available DESC
-                        LIMIT 1
-                    )
-                    RETURNING id`;
-            default:
-                throw new OGSHError("general/unspecified", `invalid daemon segment reserve method '${reserveMethod}'`);
-        }
-    }
-
     async createContainer(data: CreateContainerData): Promise<Container> {
-        let argIndex = 0;
         const result = await this.query(`
             INSERT INTO containers (
                 app_id,
@@ -120,7 +89,17 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
                 variant_id,
                 version_id
             )
-            VALUES ($${++argIndex}, $${++argIndex}, (${this.getReserveSegmentsQuery(segmentReserveMethod, argIndex)}), $${++argIndex}, $${++argIndex}, $${++argIndex}, $${++argIndex}, $${++argIndex}, $${++argIndex}, $${++argIndex})
+            VALUES ($1, $2, (
+                UPDATE daemons SET segments_available = segments_available - $3
+                    WHERE id = (
+                        SELECT id FROM daemons
+                        WHERE
+                            region_id = $4
+                            AND segments_available >= $3
+                        LIMIT 1
+                    )
+                    RETURNING id
+            ), $3, $4, $5, $6, $7, $8, $9)
             RETURNING id`,
             data.appId,
             30, // TODO specified by the plan the user selects during checkout
