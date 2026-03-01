@@ -126,7 +126,7 @@ export class PostgresDaemonDb extends PostgresDb implements Partial<Database> {
                 port_range_start = $1,
                 port_range_end = $2,
                 region_id = $3,
-                segments_usable = $4
+                segments_usable = $4,
                 setup_complete = TRUE
             WHERE
                 id = $5
