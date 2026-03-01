@@ -1,4 +1,4 @@
-import { OGSHError, parseEnvironmentVariables } from "@open-game-server-host/backend-lib";
+import { Logger, OGSHError, parseEnvironmentVariables } from "@open-game-server-host/backend-lib";
 import { Pool, QueryResult } from "pg";
 
 const hostKey = "OGSH_POSTGRES_HOST";
@@ -8,7 +8,7 @@ const passwordKey = "OGSH_POSTGRES_PASSWORD";
 const caPathKey = "OGSH_POSTGRES_CA_PATH";
 const certPathKey = "OGSH_POSTGRES_CERT_PATH";
 
-async function createPool(): Promise<Pool> {
+async function createPool(logger: Logger): Promise<Pool> {
     const parsed = parseEnvironmentVariables([
         {
             key: hostKey
@@ -32,29 +32,40 @@ async function createPool(): Promise<Pool> {
         }
     ]);
 
+    const host = parsed.get(hostKey)!;
     const port = +parsed.get(portKey)!;
     if (!Number.isInteger(port)) {
         throw new OGSHError("general/unspecified", `postgres port must be an integer`);
     }
+    const user = parsed.get(userKey)!;
+    const password = parsed.get(passwordKey)!;
 
-    const pool = new Pool({
-        host: parsed.get(hostKey)!,
+    logger.info("Connecting to Postgres", {
+        host,
         port,
-        user: parsed.get(userKey)!,
-        password: parsed.get(passwordKey)!,
+        user
+    });
+    const pool = new Pool({
+        host,
+        port,
+        user,
+        password,
         // TODO enable ssl after testing
         // ssl: {
             // ca: readFileSync(parsed.get(caPathKey)!).toString(),
             // cert: readFileSync(parsed.get(certPathKey)!).toString()
         // }
     });
-    pool.connect();
+    pool.connect().catch(error => {
+        throw new OGSHError("general/unspecified", error);
+    });
 
     return pool;
 }
 
 export abstract class PostgresDb {
-    private static pool: Promise<Pool> = createPool();
+    private static logger = new Logger();
+    private static pool: Promise<Pool> = createPool(PostgresDb.logger);
 
     static {
         PostgresDb.pool.catch(error => {
