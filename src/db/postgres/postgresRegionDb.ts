@@ -12,7 +12,7 @@ export class PostgresRegionDb extends PostgresDb implements Partial<Database> {
         result.oid
         const row = result.rows[0];
         return {
-            "iso3166-1-a-3-code": row.iso31661a3code,
+            countryCode: row.country_code,
             id: `${row.id}`,
             name: row.name,
             priceMultiplier: row.pricemultiplier
@@ -28,7 +28,7 @@ export class PostgresRegionDb extends PostgresDb implements Partial<Database> {
             )
             VALUES ($1, $2, $3)
             RETURNING id`,
-            data["iso3166-1-a-3-code"],
+            data.countryCode,
             data.name,
             data.priceMultiplier);
         if (result.rowCount === 0) {
@@ -43,7 +43,7 @@ export class PostgresRegionDb extends PostgresDb implements Partial<Database> {
         const regions: Region[] = [];
         result.rows.forEach(row => {
             regions.push({
-                "iso3166-1-a-3-code": row.iso31661a3code,
+                countryCode: row.country_code,
                 id: `${row.id}`,
                 name: row.name,
                 priceMultiplier: row.pricemultiplier

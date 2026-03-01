@@ -1,4 +1,4 @@
-import { Daemon, OGSHError } from "@open-game-server-host/backend-lib";
+import { Daemon, OGSHError, UpdateDaemonData } from "@open-game-server-host/backend-lib";
 import { generateDaemonApiKey } from "../../daemon/daemon.js";
 import { SetupDaemonData, SetupIncompleteDaemon } from "../../interfaces/daemon.js";
 import { Database } from "../db.js";
@@ -14,7 +14,7 @@ export class PostgresDaemonDb extends PostgresDb implements Partial<Database> {
             id: `${row.id}`,
             os: row.os,
             region: {
-                "iso3166-1-a-3-code": row.country_code,
+                countryCode: row.country_code,
                 id: `${row.region_id}`,
                 name: row.region_name,
                 priceMultiplier: row.price_multiplier
@@ -30,10 +30,9 @@ export class PostgresDaemonDb extends PostgresDb implements Partial<Database> {
                 id: `${row.ipv6_id}`,
                 ip: row.ipv6_ip
             } : undefined,
-            ipv4PortRangeEnd: row.ipv4_port_range_end,
-            ipv4PortRangeStart: row.ipv4_port_range_start,
-            ipv6PortRangeEnd: row.ipv6_port_range_end,
-            ipv6PortRangeStart: row.ipv6_port_range_start
+            portRangeEnd: row.port_range_end,
+            portRangeStart: row.port_range_start,
+            segmentsMax: row.segmentsMax
         }
     }
 
@@ -61,6 +60,30 @@ export class PostgresDaemonDb extends PostgresDb implements Partial<Database> {
         return this.convertRowToDaemon(row);
     }
 
+    async getDaemonByApiKeyHash(apiKeyHash: string): Promise<Daemon | SetupIncompleteDaemon> {
+        const result = await this.query(`
+            SELECT 
+                d.*,
+                v4.ip as ipv4_ip,
+                v6.ip as ipv6_ip,
+                r.name as region_name,
+                r.country_code,
+                r.price_multiplier
+            FROM daemons d
+            LEFT JOIN ipv4 v4 ON d.ipv4_id = v4.id
+            LEFT JOIN ipv6 v6 ON d.ipv6_id = v6.id
+            JOIN regions r ON d.regionid = r.id
+            WHERE
+                d.api_key_hash = $1
+            LIMIT 1`,
+            apiKeyHash);
+        if (result.rowCount === 0) {
+            throw new OGSHError("general/unspecified", `daemon not found by hash`);
+        }
+        const row = result.rows[0];
+        return this.convertRowToDaemon(row);
+    }
+
     async createDaemon(): Promise<SetupIncompleteDaemon & { apiKey: string; }> {
         const apiKey = generateDaemonApiKey();
         const result = await this.query(`
@@ -82,46 +105,46 @@ export class PostgresDaemonDb extends PostgresDb implements Partial<Database> {
         }
     }
 
-    async setupDaemon(daemonId: string, data: SetupDaemonData): Promise<Daemon> {
+    async updateDaemon(daemonId: string, data: UpdateDaemonData) {
         const result = await this.query(`
             UPDATE daemons
             SET
-                cpu_arch=$1,
-                cpu_name=$2,
-                ipv4_id=$3,
-                ipv6_id=$4,
-                ipv4_port_range_start=$5,
-                ipv4_port_range_end=$6,
-                ipv6_port_range_start=$7,
-                ipv6_port_range_end=$8,
-                os=$9,
-                region_id=$10,
-                segments=$11,
-                segments_available=$11,
-                setup_complete=TRUE
+                cpu_arch = COALESCE($1, cpu_arch),
+                cpu_name = COALESCE($2, cpu_name),
+                os = COALESCE($3, os),
+                segments_max = COALESCE($4, segments_max)
             WHERE
-                id = $12
-                AND setup_complete = FALSE
-            LIMIT 1
-            RETURNING id`,
+                id = $5
+            `,
             data.cpuArch,
             data.cpuName,
-            data.ipv4,
-            data.ipv6,
-            data.ipv4PortRangeStart,
-            data.ipv4PortRangeEnd,
-            data.ipv6PortRangeStart,
-            data.ipv6PortRangeEnd,
             data.os,
+            data.segmentsMax,
+            daemonId
+        );
+    }
+
+    async setupDaemon(daemonId: string, data: SetupDaemonData) {
+        const result = await this.query(`
+            UPDATE daemons
+            SET
+                port_range_start = $1,
+                port_range_end = $2,
+                region_id = $3,
+                segments_max = $4
+                setup_complete = TRUE
+            WHERE
+                id = $5
+                AND setup_complete = FALSE`,
+            data.portRangeStart,
+            data.portRangeEnd,
             data.regionId,
-            data.segments,
+            data.segmentsMax,
             daemonId
         );
         if (result.rowCount === 0) {
             throw new OGSHError("general/unspecified", `could not set up daemon id '${daemonId}', it is either missing or already set up`);
         }
-        const id = `${result.rows[0].id}`;
-        return this.getDaemon(id);
     }
 
     async listDaemonsByRegion(regionId: string): Promise<Daemon[]> {

@@ -3,7 +3,6 @@ import { segmentReserveMethod, SegmentReserveMethod } from "../../daemon/daemon.
 import { CreateContainerData } from "../../interfaces/container.js";
 import { Database } from "../db.js";
 import { PostgresDb } from "./postgresDb.js";
-import { SetupIncompleteDaemon } from "../../interfaces/daemon.js";
 
 export class PostgresContainerDb extends PostgresDb implements Partial<Database> {
     private convertRowToContainer(row: any): Container {
@@ -16,7 +15,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
                 createdAt: +row.daemon_created_at,
                 id: `${row.daemon_id}`,
                 region: {
-                    "iso3166-1-a-3-code": row.country_code,
+                    countryCode: row.country_code,
                     id: `${row.region_id}`,
                     name: row.region_name,
                     priceMultiplier: row.price_multiplier
@@ -28,12 +27,12 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
                 ipv6: row.ipv6_id ? {
                     id: `${row.ipv6_id}`,
                     ip: row.ipv6_ip
-                } : undefined
+                } : undefined,
+                setupComplete: row.setup_complete
             },
             free: row.free,
             id: `${row.id}`,
-            ipv4Ports: [], // TODO
-            ipv6Ports: [], // TODO
+            ports: [], // TODO
             locked: row.locked,
             name: row.name,
             runtime: row.runtime,

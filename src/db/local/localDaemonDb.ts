@@ -103,7 +103,7 @@ export class LocalDaemonDb extends LocalDb implements Partial<Database> {
         this.writeJsonFile<DaemonLocalDbFile>("daemon", daemonId, {
             ...raw,
             regionId: data.regionId,
-            segments: data.segments,
+            segmentsMax: data.segmentsMax,
             portRangeStart: data.portRangeStart,
             portRangeEnd: data.portRangeEnd
         });
