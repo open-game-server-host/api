@@ -68,14 +68,7 @@ CREATE TABLE users_containers (
     UNIQUE(user_id, container_id)
 );
 
-CREATE TABLE container_ipv4_ports (
-    id SERIAL PRIMARY KEY,
-    container_id INTEGER NOT NULL REFERENCES containers(id) ON DELETE CASCADE,
-    host_port INTEGER NOT NULL,
-    container_port INTEGER NOT NULL
-);
-
-CREATE TABLE container_ipv6_ports (
+CREATE TABLE container_ports (
     id SERIAL PRIMARY KEY,
     container_id INTEGER NOT NULL REFERENCES containers(id) ON DELETE CASCADE,
     host_port INTEGER NOT NULL,
