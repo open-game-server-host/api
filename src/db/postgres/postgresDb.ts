@@ -113,7 +113,7 @@ export abstract class PostgresDb implements PostgresClient {
 }
 
 export class PostgresTransaction implements PostgresClient {
-    finished = false;
+    private finished = false;
 
     constructor(private readonly client: PoolClient) {
 
@@ -153,14 +153,20 @@ export class PostgresTransaction implements PostgresClient {
     async finish() {
         this.checkFinished();
         this.finished = true;
-        await this.query("COMMIT");
+        await this.client.query("COMMIT").catch(error => {
+            this.client.release();
+            throw new OGSHError("general/unspecified", error);
+        });
         this.client.release();
     }
 
     async cancel() {
         this.checkFinished();
         this.finished = true;
-        await this.query("ROLLBACK");
+        await this.client.query("ROLLBACK").catch(error => {
+            this.client.release();
+            throw new OGSHError("general/unspecified", error);
+        });
         this.client.release();
     }
 }
