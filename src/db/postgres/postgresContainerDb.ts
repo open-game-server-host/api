@@ -120,7 +120,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
                 variant_id,
                 version_id
             )
-            VALUES ($${++argIndex}, $${++argIndex}, (${this.getReserveSegmentsQuery(segmentReserveMethod, argIndex)}), $${++argIndex}, $${++argIndex}, $${++argIndex}, $${++argIndex}, $${++argIndex}, $${++argIndex},${++argIndex})
+            VALUES ($${++argIndex}, $${++argIndex}, (${this.getReserveSegmentsQuery(segmentReserveMethod, argIndex)}), $${++argIndex}, $${++argIndex}, $${++argIndex}, $${++argIndex}, $${++argIndex}, $${++argIndex}, $${++argIndex})
             RETURNING id`,
             data.appId,
             30, // TODO specified by the plan the user selects during checkout
