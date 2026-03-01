@@ -17,7 +17,7 @@ export interface DaemonLocalDbFile {
     portRangeStart?: number;
     portRangeEnd?: number;
     regionId?: string;
-    segments?: number;
+    segmentsUsable?: number;
     segmentsAvailable?: number;
     segmentsMax?: number;
 }
@@ -40,7 +40,7 @@ export class LocalDaemonDb extends LocalDb implements Partial<Database> {
             portRangeStart: raw.portRangeStart,
             portRangeEnd: raw.portRangeEnd,
             region: await DATABASE.getRegion(raw.regionId!),
-            segments: raw.segments!,
+            segmentsUsable: raw.segmentsUsable!,
             segmentsAvailable: raw.segmentsAvailable!,
             segmentsMax: raw.segmentsMax!,
             setupComplete: raw.setupComplete
@@ -97,7 +97,7 @@ export class LocalDaemonDb extends LocalDb implements Partial<Database> {
         this.writeJsonFile<DaemonLocalDbFile>("daemon", daemonId, {
             ...raw,
             regionId: data.regionId,
-            segmentsMax: data.segmentsMax,
+            segmentsUsable: data.segmentsUsable,
             portRangeStart: data.portRangeStart,
             portRangeEnd: data.portRangeEnd
         });

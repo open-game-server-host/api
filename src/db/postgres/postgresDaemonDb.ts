@@ -19,7 +19,7 @@ export class PostgresDaemonDb extends PostgresDb implements Partial<Database> {
                 name: row.region_name,
                 priceMultiplier: row.price_multiplier
             },
-            segments: row.segments,
+            segmentsUsable: row.segments_usable,
             segmentsAvailable: row.segments_available,
             setupComplete: row.setup_complete,
             ipv4: row.ipv4_id ? {
@@ -126,7 +126,7 @@ export class PostgresDaemonDb extends PostgresDb implements Partial<Database> {
                 port_range_start = $1,
                 port_range_end = $2,
                 region_id = $3,
-                segments_max = $4
+                segments_usable = $4
                 setup_complete = TRUE
             WHERE
                 id = $5
@@ -134,7 +134,7 @@ export class PostgresDaemonDb extends PostgresDb implements Partial<Database> {
             data.portRangeStart,
             data.portRangeEnd,
             data.regionId,
-            data.segmentsMax,
+            data.segmentsUsable,
             daemonId
         );
         if (result.rowCount === 0) {

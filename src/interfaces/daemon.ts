@@ -12,7 +12,7 @@ export interface SetupIncompleteDaemon {
 
 export interface SetupDaemonData {
     regionId: string;
-    segmentsMax: number;
+    segmentsUsable: number;
     portRangeStart: number;
     portRangeEnd: number;
 }
