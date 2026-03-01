@@ -1,4 +1,5 @@
-import { Container, OGSHError } from "@open-game-server-host/backend-lib";
+import { Container, getVersion, OGSHError } from "@open-game-server-host/backend-lib";
+import { QueryResult } from "pg";
 import { segmentReserveMethod, SegmentReserveMethod } from "../../daemon/daemon.js";
 import { CreateContainerData } from "../../interfaces/container.js";
 import { Database } from "../db.js";
@@ -75,47 +76,95 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
         return this.convertRowToContainer(row);
     }
 
+    private async reserveSegments(reserveMethod: SegmentReserveMethod, regionId: string, segments: number): Promise<string> {
+        let result: Promise<QueryResult>;
+        switch (reserveMethod) {
+            case "fifo":
+                result = this.query(`
+                    UPDATE daemons SET segments_available = segments_available - $1
+                    WHERE id = (
+                        SELECT id FROM daemons
+                        WHERE
+                            region_id = $2
+                            AND segments_available >= $1
+                        LIMIT 1
+                    )
+                    RETURNING id`,
+                    segments,
+                    regionId);
+                break;
+            case "balanced":
+                result = this.query(`
+                    UPDATE daemons SET segments_available = segments_available - $1
+                    WHERE id = (
+                        SELECT id FROM daemons
+                        WHERE
+                            region_id = $2
+                            AND segments_available >= $1
+                        ORDER BY segments_available DESC
+                        LIMIT 1
+                    )
+                    RETURNING id`,
+                    segments,
+                    regionId);
+            default:
+                throw new OGSHError("general/unspecified", `invalid daemon segment reserve method '${reserveMethod}'`);
+        }
+        if ((await result).rowCount === 0) {
+            throw new OGSHError("general/unspecified", `no availability left in region '${regionId}'`);
+        }
+        return (await result).rows[0].id;
+    }
+
     async createContainer(data: CreateContainerData): Promise<Container> {
+        const version = await getVersion(data.appId, data.variantId, data.versionId);
+        if (!version) {
+            throw new OGSHError("app/version-not-found", `cannot create container with app id '${data.appId}' variant id '${data.variantId}' version id '${data.versionId}'`);
+        }
+        await this.query("BEGIN");
+        const daemonId = await this.reserveSegments(segmentReserveMethod, data.regionId, data.segments);
         const result = await this.query(`
             INSERT INTO containers (
                 app_id,
+                variant_id,
+                version_id,
                 contract_length_days,
-                daemon_id,
                 free,
                 name,
                 runtime,
                 segments,
                 user_id,
-                variant_id,
-                version_id
+                daemon_id
             )
-            VALUES ($1, $2, (
-                UPDATE daemons SET segments_available = segments_available - $3
-                    WHERE id = (
-                        SELECT id FROM daemons
-                        WHERE
-                            region_id = $4
-                            AND segments_available >= $3
-                        LIMIT 1
-                    )
-                    RETURNING id
-            ), $3, $4, $5, $6, $7, $8, $9)
+            VALUES (
+                $1,
+                $2,
+                $3,
+                $4,
+                $5,
+                $6,
+                $7,
+                $8,
+                $9,
+                $10
+            )
             RETURNING id`,
-            data.appId,
-            30, // TODO specified by the plan the user selects during checkout
-            data.segments,
-            data.regionId,
-            false,
-            data.name,
-            data.runtime,
-            data.segments,
-            data.userId,
-            data.variantId,
-            data.versionId
+            data.appId, // 1
+            data.variantId, // 2
+            data.versionId, // 3
+            30, // 4 TODO specified by the plan the user selects during checkout
+            false, // 5
+            data.name, // 6
+            version.defaultRuntime, // 7
+            data.segments, // 8
+            data.userId, // 9
+            daemonId // 10
         );
         if (result.rowCount === 0) {
+            await this.query("ROLLBACK");
             throw new OGSHError("general/unspecified", `could not create container`);
         }
+        await this.query("COMMIT");
         const id = `${result.rows[0].id}`;
         return this.getContainer(id);
     }
