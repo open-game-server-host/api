@@ -78,6 +78,7 @@ export class PostgresDaemonDb extends PostgresDb implements Partial<Database> {
             LIMIT 1`,
             apiKeyHash);
         if (result.rowCount === 0) {
+            console.log(`hash: '${apiKeyHash}'`);
             throw new OGSHError("general/unspecified", `daemon not found by hash`);
         }
         const row = result.rows[0];
