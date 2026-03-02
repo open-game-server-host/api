@@ -5,7 +5,6 @@ export interface CreateContainerData {
     free: boolean;
     name: string;
     regionId: string;
-    runtime: string;
     segments: number;
     userId: string;
 }

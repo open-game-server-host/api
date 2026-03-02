@@ -17,7 +17,7 @@ export interface DaemonLocalDbFile {
     portRangeStart?: number;
     portRangeEnd?: number;
     regionId?: string;
-    segments?: number;
+    segmentsUsable?: number;
     segmentsAvailable?: number;
     segmentsMax?: number;
 }
@@ -40,7 +40,7 @@ export class LocalDaemonDb extends LocalDb implements Partial<Database> {
             portRangeStart: raw.portRangeStart,
             portRangeEnd: raw.portRangeEnd,
             region: await DATABASE.getRegion(raw.regionId!),
-            segments: raw.segments!,
+            segmentsUsable: raw.segmentsUsable!,
             segmentsAvailable: raw.segmentsAvailable!,
             segmentsMax: raw.segmentsMax!,
             setupComplete: raw.setupComplete
@@ -66,7 +66,7 @@ export class LocalDaemonDb extends LocalDb implements Partial<Database> {
         throw new OGSHError("general/unspecified", `no daemon found with provided api key hash`);
     }
 
-    async createDaemon(): Promise<SetupIncompleteDaemon & { apiKey: string }> {
+    async createDaemon(): Promise<string> {
         const id = this.createUniqueId("daemon");
         const key = generateDaemonApiKey();
         const data: DaemonLocalDbFile = {
@@ -76,13 +76,7 @@ export class LocalDaemonDb extends LocalDb implements Partial<Database> {
             setupComplete: false
         }
         this.writeJsonFile<DaemonLocalDbFile>("daemon", id, data);
-        return {
-            id,
-            apiKey: key.apiKey,
-            apiKeyHash: key.hash,
-            createdAt: data.createdAt,
-            setupComplete: data.setupComplete
-        }
+        return key.apiKey;
     }
 
     async updateDaemon(daemonId: string, data: UpdateDaemonData) {
@@ -103,7 +97,7 @@ export class LocalDaemonDb extends LocalDb implements Partial<Database> {
         this.writeJsonFile<DaemonLocalDbFile>("daemon", daemonId, {
             ...raw,
             regionId: data.regionId,
-            segments: data.segments,
+            segmentsUsable: data.segmentsUsable,
             portRangeStart: data.portRangeStart,
             portRangeEnd: data.portRangeEnd
         });
