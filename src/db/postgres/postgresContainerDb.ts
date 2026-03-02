@@ -221,7 +221,6 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
                 c.*,
                 d.created_at as daemon_created_at,
                 d.cpu_arch,
-                d.id as daemon_id,
                 d.ipv4_id,
                 d.ipv6_id,
                 d.region_id,
@@ -236,8 +235,8 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
                 LEFT JOIN ipv6 v6 ON d.ipv6_id = v6.id
                 LEFT JOIN regions r ON d.region_id = r.id
             WHERE
-                daemon_id = $1
-                AND terminate_at <= NOW()`,
+                c.daemon_id = $1
+                AND (terminate_at IS NULL OR terminate_at <= NOW())`,
             daemonId);
         const containers: Container[] = [];
         result.rows.forEach(row => {
