@@ -89,7 +89,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
                             AND segments_available >= $1
                         LIMIT 1
                     )
-                    RETURNING id AS daemon_id`,
+                    RETURNING id`,
                     segments,
                     regionId);
                 break;
@@ -104,7 +104,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
                         ORDER BY segments_available DESC
                         LIMIT 1
                     )
-                    RETURNING id AS daemon_id`,
+                    RETURNING id`,
                     segments,
                     regionId);
             default:
@@ -123,6 +123,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
         }
         const client = await this.startTransaction();
         const daemonId = await this.reserveSegments(client, segmentReserveMethod, data.regionId, data.segments);
+        console.log(`daemon id: ${daemonId}`);
         const result = await client.query(`
             INSERT INTO containers (
                 app_id,
