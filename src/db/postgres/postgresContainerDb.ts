@@ -66,7 +66,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
             LEFT JOIN ipv6 v6 ON d.ipv6_id = v6.id
             JOIN regions r ON d.region_id = r.id
             WHERE
-                id = $1
+                c.id = $1
             LIMIT 1`,
             containerId);
         if (result.rowCount === 0) {
