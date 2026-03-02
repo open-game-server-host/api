@@ -12,7 +12,7 @@ const parseContainerId = param("containerId").isString();
 type ContainerRequest<B = any> = Request<{ containerId: string }, any, B>;
 
 containerHttpRouter.get("/:containerId", parseContainerId, containerAuthMiddleware(), async (req: ContainerRequest, res: ContainerResponse) => {
-    respond(res, res.locals.containerWithPermissions);
+    respond(res, res.locals.container);
 });
 
 containerHttpRouter.get("/:containerId", parseContainerId, async (req: ContainerRequest, res) => {
@@ -21,8 +21,8 @@ containerHttpRouter.get("/:containerId", parseContainerId, async (req: Container
 });
 
 containerHttpRouter.delete("/:containerId", parseContainerId, containerAuthMiddleware(["terminate"]), async (req: ContainerRequest, res: ContainerResponse) => {
-    await DATABASE.terminateContainer(res.locals.containerWithPermissions.id, new Date()); // TODO in the future support selecting termination date
-    await BROKER.removeContainer(res.locals.containerWithPermissions.daemon.id, res.locals.containerWithPermissions.id)
+    await DATABASE.terminateContainer(res.locals.container.id, new Date()); // TODO in the future support selecting termination date
+    await BROKER.removeContainer(res.locals.container.daemon.id, res.locals.container.id)
     respond(res);
 });
 
@@ -84,22 +84,22 @@ containerHttpRouter.post("/:containerId/backup", containerAuthMiddleware(["makeB
 });
 
 containerHttpRouter.post("/:containerId/start", containerAuthMiddleware(["start"]), async (req, res: ContainerResponse) => {
-    await BROKER.startContainer(res.locals.containerWithPermissions.daemon.id, res.locals.containerWithPermissions.id);
+    await BROKER.startContainer(res.locals.container.daemon.id, res.locals.container.id);
     respond(res);
 });
 
 containerHttpRouter.post("/:containerId/stop", containerAuthMiddleware(["stop"]), async (req, res: ContainerResponse) => {
-    await BROKER.stopContainer(res.locals.containerWithPermissions.daemon.id, res.locals.containerWithPermissions.id);
+    await BROKER.stopContainer(res.locals.container.daemon.id, res.locals.container.id);
     respond(res);
 });
 
 containerHttpRouter.post("/:containerId/restart", containerAuthMiddleware(["start", "stop"]), async (req, res: ContainerResponse) => {
-    await BROKER.restartContainer(res.locals.containerWithPermissions.daemon.id, res.locals.containerWithPermissions.id);
+    await BROKER.restartContainer(res.locals.container.daemon.id, res.locals.container.id);
     respond(res);
 });
 
 containerHttpRouter.post("/:containerId/kill", containerAuthMiddleware(["kill"]), async (req, res: ContainerResponse) => {
-    await BROKER.killContainer(res.locals.containerWithPermissions.daemon.id, res.locals.containerWithPermissions.id);
+    await BROKER.killContainer(res.locals.container.daemon.id, res.locals.container.id);
     respond(res);
 });
 
@@ -107,7 +107,7 @@ interface CommandBody {
     command: string;
 }
 containerHttpRouter.post("/:containerId/command", [body("command").isString()], containerAuthMiddleware(["command"]), async (req: BodyRequest<CommandBody>, res: ContainerResponse) => {
-    await BROKER.sendCommandToContainer(res.locals.containerWithPermissions.daemon.id, res.locals.containerWithPermissions.id, req.body.command);
+    await BROKER.sendCommandToContainer(res.locals.container.daemon.id, res.locals.container.id, req.body.command);
     respond(res);
 });
 

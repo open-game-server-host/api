@@ -1,7 +1,7 @@
 import { Container, getVersion, OGSHError } from "@open-game-server-host/backend-lib";
 import { QueryResult } from "pg";
 import { segmentReserveMethod, SegmentReserveMethod } from "../../daemon/daemon.js";
-import { CreateContainerData } from "../../interfaces/container.js";
+import { ContainerPermission, CreateContainerData } from "../../interfaces/container.js";
 import { Database } from "../db.js";
 import { PostgresClient, PostgresDb } from "./postgresDb.js";
 
@@ -76,6 +76,22 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
         return this.convertRowToContainer(row);
     }
 
+    async getUserContainerPermissions(containerId: string, userId: string): Promise<ContainerPermission[]> {
+        const result = await this.query(`
+            SELECT permissions
+            FROM container_permissions
+            WHERE
+                container_id = $1
+                AND user_id = $2
+            LIMIT 1`,
+            containerId,
+            userId);
+        if (result.rowCount === 0) {
+            return [];
+        }
+        return JSON.parse(result.rows[0].permissions);
+    }
+
     private async reserveSegments(client: PostgresClient, reserveMethod: SegmentReserveMethod, regionId: string, segments: number): Promise<string> {
         let result: Promise<QueryResult>;
         switch (reserveMethod) {
@@ -123,7 +139,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
         }
         const client = await this.startTransaction();
         const daemonId = await this.reserveSegments(client, segmentReserveMethod, data.regionId, data.segments);
-        const result = await client.query(`
+        const createContainerResult = await client.query(`
             INSERT INTO containers (
                 app_id,
                 variant_id,
@@ -157,12 +173,25 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
             data.userId, // 8
             daemonId // 9
         );
-        if (result.rowCount === 0) {
+        if (createContainerResult.rowCount === 0) {
             await client.cancel();
             throw new OGSHError("general/unspecified", `could not create container`);
         }
+        const id = `${createContainerResult.rows[0].id}`;
+        const defaultPermissions: ContainerPermission[] = [
+            "*"
+        ];
+        const addPermissionsResult = await client.query(`
+            INSERT INTO container_permissions (
+                container_id,
+                user_id,
+                permissions
+            )
+            VALUES (
+                $1, $2, $3
+            )`,
+            id, data.userId, JSON.stringify(defaultPermissions));
         await client.finish();
-        const id = `${result.rows[0].id}`;
         return this.getContainer(id);
     }
 

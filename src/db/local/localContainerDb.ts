@@ -1,7 +1,7 @@
-import { Container, ContainerPermission, ContainerPort, ContainerWithPermissions, Daemon, getVariant, getVersion, OGSHError, sanitiseDaemon } from "@open-game-server-host/backend-lib";
+import { Container, ContainerPort, Daemon, getVariant, getVersion, OGSHError, sanitiseDaemon } from "@open-game-server-host/backend-lib";
 import { isContainerTerminated } from "../../container/container.js";
 import { segmentReserveMethod, SegmentReserveMethod } from "../../daemon/daemon.js";
-import { CreateContainerData } from "../../interfaces/container.js";
+import { ContainerPermission, CreateContainerData } from "../../interfaces/container.js";
 import { DATABASE, Database } from "../db.js";
 import { DaemonLocalDbFile } from "./localDaemonDb.js";
 import { LocalDb } from "./localDb.js";
@@ -49,26 +49,9 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
         }
     }
 
-    async getContainerAsUser(id: string, userId: string): Promise<ContainerWithPermissions> {
+    async getUserContainerPermissions(id: string, userId: string): Promise<ContainerPermission[]> {
         const raw = this.readJsonFile<ContainerLocalDbFile>("container", id);
-        return {
-            appId: raw.appId,
-            variantId: raw.variantId,
-            versionId: raw.versionId,
-            contractLengthDays: raw.contractLengthDays,
-            createdAt: raw.createdAt,
-            daemon: sanitiseDaemon(await DATABASE.getDaemon(raw.daemonId)),
-            free: raw.free,
-            id,
-            locked: raw.locked,
-            name: raw.name,
-            ports: raw.ports,
-            runtime: raw.runtime,
-            segments: raw.segments,
-            terminateAt: raw.terminateAt,
-            userPermissions: raw.users[userId] || undefined,
-            userId: raw.userId,
-        }
+        return raw.users[userId] || []
     }
 
     private async reserveSegments(regionId: string, reserveMethod: SegmentReserveMethod, segments: number): Promise<Daemon> {

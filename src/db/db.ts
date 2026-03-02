@@ -1,6 +1,6 @@
-import { Container, ContainerWithPermissions, Daemon, Ip, OGSHError, Region, UpdateDaemonData, User } from "@open-game-server-host/backend-lib";
+import { Container, Daemon, Ip, OGSHError, Region, UpdateDaemonData, User } from "@open-game-server-host/backend-lib";
 import { getDbType } from "../env.js";
-import { CreateContainerData } from "../interfaces/container.js";
+import { ContainerPermission, CreateContainerData } from "../interfaces/container.js";
 import { SetupDaemonData, SetupIncompleteDaemon } from "../interfaces/daemon.js";
 import { CreateRegionData } from "../interfaces/region.js";
 import { LocalContainerDb } from "./local/localContainerDb.js";
@@ -21,7 +21,7 @@ export type DbType =
 
 export interface Database {
     getContainer(containerId: string): Promise<Container>;
-    getContainerAsUser(containerId: string, userId: string): Promise<ContainerWithPermissions>;
+    getUserContainerPermissions(containerId: string, userId: string): Promise<ContainerPermission[]>;
     createContainer(data: CreateContainerData): Promise<Container>;
     terminateContainer(containerId: string, terminateAt: Date): Promise<void>;
     listActiveContainersByUser(authUid: string): Promise<Container[]>; // TOOD paginate
@@ -74,7 +74,7 @@ function createLocalDb(): Database {
 
     return {
         getContainer: containerDb.getContainer.bind(containerDb),
-        getContainerAsUser: containerDb.getContainerAsUser.bind(containerDb),
+        getUserContainerPermissions: containerDb.getUserContainerPermissions.bind(containerDb),
         createContainer: containerDb.createContainer.bind(containerDb),
         terminateContainer: containerDb.terminateContainer.bind(containerDb),
         listActiveContainersByDaemon: containerDb.listActiveContainersByDaemon.bind(containerDb),
@@ -116,7 +116,7 @@ function createPostgresDb(): Database {
 
     return {
         getContainer: containerDb.getContainer.bind(containerDb),
-        getContainerAsUser: containerDb.getContainerAsUser.bind(containerDb),
+        getUserContainerPermissions: containerDb.getUserContainerPermissions.bind(containerDb),
         createContainer: containerDb.createContainer.bind(containerDb),
         terminateContainer: containerDb.terminateContainer.bind(containerDb),
         listActiveContainersByDaemon: containerDb.listActiveContainersByDaemon.bind(containerDb),

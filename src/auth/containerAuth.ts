@@ -1,10 +1,12 @@
-import { ContainerPermission, ContainerWithPermissions, OGSHError, User } from "@open-game-server-host/backend-lib";
+import { Container, OGSHError, User } from "@open-game-server-host/backend-lib";
 import { NextFunction, Request, Response } from "express";
 import { DATABASE } from "../db/db.js";
+import { ContainerPermission } from "../interfaces/container.js";
 import { authenticateUser } from "./userAuth.js";
 
 export interface ContainerLocals {
-    containerWithPermissions: ContainerWithPermissions;
+    container: Container;
+    permissions: ContainerPermission[];
     user: User;
 }
 
@@ -19,16 +21,15 @@ export function containerAuthMiddleware(permissions: ContainerPermission[] = [])
 
         const authUid = await authenticateUser(req);
         res.locals.user = await DATABASE.getUser(authUid);
-        res.locals.containerWithPermissions = await DATABASE.getContainerAsUser(containerId, res.locals.user.id);
-
-        if (!res.locals.containerWithPermissions.userPermissions) {
-            throw new OGSHError("auth/invalid", `user id '${res.locals.user.id}' has no permissions for container id '${containerId}'`);
-        }
+        res.locals.permissions = await DATABASE.getUserContainerPermissions(containerId, res.locals.user.id);
+        
         for (const permission of permissions) {
-            if (!res.locals.containerWithPermissions.userPermissions.includes(permission)) {
+            if (!res.locals.permissions.includes(permission)) {
                 throw new OGSHError("auth/invalid", `user id '${res.locals.user.id} does not have permission '${permission}' for container id '${containerId}'`);
             }
         }
+
+        res.locals.container = await DATABASE.getContainer(containerId);
 
         next();
     }

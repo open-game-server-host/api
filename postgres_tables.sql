@@ -4,7 +4,11 @@ CREATE TABLE users (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- TODO users_permissions table
+CREATE TABLE user_permissions (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    permissions JSON NOT NULL
+);
 
 CREATE TABLE ipv4 (
     id SERIAL PRIMARY KEY,
@@ -72,6 +76,13 @@ CREATE TABLE container_ports (
     container_id INTEGER NOT NULL REFERENCES containers(id) ON DELETE CASCADE,
     host_port INTEGER NOT NULL,
     container_port INTEGER NOT NULL
+);
+
+CREATE TABLE container_permissions (
+    id SERIAL PRIMARY KEY,
+    container_id INTEGER NOT NULL REFERENCES containers(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    permissions JSON NOT NULL
 );
 
 CREATE INDEX idx_users_auth_uid ON users(auth_uid);
