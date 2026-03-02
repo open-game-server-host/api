@@ -2,7 +2,6 @@ import { expressErrorHandler, Logger } from "@open-game-server-host/backend-lib"
 import express from "express";
 import { readFileSync } from "fs";
 import https from "https";
-import { userAuthMiddleware } from "../auth/userAuth.js";
 import { getPort, getTlsCertPath, getTlsKeyPath } from "../env.js";
 import { wsServer } from "../ws/wsServer.js";
 import { appHttpRouter } from "./routes/appHttpRoutes.js";
@@ -14,11 +13,10 @@ export async function initHttpServer(logger: Logger) {
     const router = express();
     router.use(express.json());
 
-    // TODO config routes
     router.use("/v1/apps", appHttpRouter);
-    router.use("/v1/container", userAuthMiddleware, containerHttpRouter); // TODO user validation middleware
-    router.use("/v1/me", userAuthMiddleware, meHttpRouter); // TODO user validation middleware
-    router.use("/v1/daemon", daemonHttpRouter); // TODO daemon validation middleware
+    router.use("/v1/container", containerHttpRouter);
+    router.use("/v1/me", meHttpRouter);
+    router.use("/v1/daemon", daemonHttpRouter);
 
     router.use(expressErrorHandler);
 

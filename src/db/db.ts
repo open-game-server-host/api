@@ -1,8 +1,9 @@
 import { Container, Daemon, Ip, OGSHError, Region, UpdateDaemonData, User } from "@open-game-server-host/backend-lib";
 import { getDbType } from "../env.js";
-import { CreateContainerData } from "../interfaces/container.js";
+import { ContainerPermission, CreateContainerData } from "../interfaces/container.js";
 import { SetupDaemonData, SetupIncompleteDaemon } from "../interfaces/daemon.js";
 import { CreateRegionData } from "../interfaces/region.js";
+import { UserPermission } from "../interfaces/user.js";
 import { LocalContainerDb } from "./local/localContainerDb.js";
 import { LocalDaemonDb } from "./local/localDaemonDb.js";
 import { LocalIpv4Db, LocalIpv6Db } from "./local/localIpDb.js";
@@ -21,6 +22,8 @@ export type DbType =
 
 export interface Database {
     getContainer(containerId: string): Promise<Container>;
+    getUserContainerPermissions(containerId: string, userId: string): Promise<ContainerPermission[]>;
+    hasUserGotContainerPermissions(containerId: string, userId: string, ...permissions: ContainerPermission[]): Promise<boolean>;
     createContainer(data: CreateContainerData): Promise<Container>;
     terminateContainer(containerId: string, terminateAt: Date): Promise<void>;
     listActiveContainersByUser(authUid: string): Promise<Container[]>; // TOOD paginate
@@ -50,6 +53,8 @@ export interface Database {
     doesUserExist(userId: string): Promise<boolean>;
     getUser(authUid: string): Promise<User>;
     createUser(authUid: string): Promise<User>;
+    getUserPermissions(userId: string): Promise<UserPermission[]>;
+    hasUserGotPermissions(userId: string, permissions: UserPermission[]): Promise<boolean>;
 }
 
 export const DATABASE = createDb();
@@ -73,6 +78,8 @@ function createLocalDb(): Database {
 
     return {
         getContainer: containerDb.getContainer.bind(containerDb),
+        getUserContainerPermissions: containerDb.getUserContainerPermissions.bind(containerDb),
+        hasUserGotContainerPermissions: containerDb.hasUserGotContainerPermissions.bind(containerDb),
         createContainer: containerDb.createContainer.bind(containerDb),
         terminateContainer: containerDb.terminateContainer.bind(containerDb),
         listActiveContainersByDaemon: containerDb.listActiveContainersByDaemon.bind(containerDb),
@@ -100,7 +107,9 @@ function createLocalDb(): Database {
 
         doesUserExist: userDb.doesUserExist.bind(userDb),
         getUser: userDb.getUser.bind(userDb),
-        createUser: userDb.createUser.bind(userDb)
+        createUser: userDb.createUser.bind(userDb),
+        getUserPermissions: userDb.getUserPermissions.bind(userDb),
+        hasUserGotPermissions: userDb.hasUserGotPermissions.bind(userDb)
     }
 }
 
@@ -114,6 +123,8 @@ function createPostgresDb(): Database {
 
     return {
         getContainer: containerDb.getContainer.bind(containerDb),
+        getUserContainerPermissions: containerDb.getUserContainerPermissions.bind(containerDb),
+        hasUserGotContainerPermissions: containerDb.hasUserGotContainerPermissions.bind(containerDb),
         createContainer: containerDb.createContainer.bind(containerDb),
         terminateContainer: containerDb.terminateContainer.bind(containerDb),
         listActiveContainersByDaemon: containerDb.listActiveContainersByDaemon.bind(containerDb),
@@ -141,6 +152,8 @@ function createPostgresDb(): Database {
 
         doesUserExist: userDb.doesUserExist.bind(userDb),
         getUser: userDb.getUser.bind(userDb),
-        createUser: userDb.createUser.bind(userDb)
+        createUser: userDb.createUser.bind(userDb),
+        getUserPermissions: userDb.getUserPermissions.bind(userDb),
+        hasUserGotPermissions: userDb.hasUserGotPermissions.bind(userDb)
     }
 }

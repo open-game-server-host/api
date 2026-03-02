@@ -1,4 +1,5 @@
 import { OGSHError, User } from "@open-game-server-host/backend-lib";
+import { USER_ALL_PERMISSION, UserPermission } from "../../interfaces/user.js";
 import { Database } from "../db.js";
 import { PostgresDb } from "./postgresDb.js";
 
@@ -16,8 +17,7 @@ export class PostgresUserDb extends PostgresDb implements Partial<Database> {
         return {
             authUid: row.auth_uid,
             createdAt: +row.created_at,
-            id: `${row.id}`,
-            permissions: [] // TODO
+            id: `${row.id}`
         }
     }
 
@@ -27,5 +27,32 @@ export class PostgresUserDb extends PostgresDb implements Partial<Database> {
             throw new OGSHError("general/unspecified", `authUid '${authUid}' already exists`);
         }
         return this.getUser(authUid);
+    }
+
+    async getUserPermissions(userId: string): Promise<UserPermission[]> {
+        const result = await this.query(`
+            SELECT permission
+            FROM user_permissions
+            WHERE
+                user_id = $1
+        `,
+            userId
+        );
+        const permissions: UserPermission[] = [];
+        result.rows.forEach(row => permissions.push(row.permission));
+        return permissions;
+    }
+
+    async hasUserGotPermissions(userId: string, permissions: UserPermission[]): Promise<boolean> {
+        const userPerms = await this.getUserPermissions(userId);
+        if (userPerms.includes(USER_ALL_PERMISSION)) {
+            return true;
+        }
+        for (const permission of permissions) {
+            if (!userPerms.includes(permission)) {
+                return false;
+            }
+        }
+        return true;
     }
 }

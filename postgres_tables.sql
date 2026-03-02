@@ -4,7 +4,12 @@ CREATE TABLE users (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- TODO users_permissions table
+CREATE TABLE user_permissions (
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    permission TEXT NOT NULL,
+
+    UNIQUE (user_id, permission)
+);
 
 CREATE TABLE ipv4 (
     id SERIAL PRIMARY KEY,
@@ -24,11 +29,11 @@ CREATE TABLE regions (
 );
 
 CREATE TABLE daemons (
+    id SERIAL PRIMARY KEY,
     api_key_hash TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     cpu_arch VARCHAR(10) DEFAULT NULL,
     cpu_name TEXT DEFAULT NULL,
-    id SERIAL PRIMARY KEY,
     ipv4_id INTEGER DEFAULT NULL REFERENCES ipv4(id) ON DELETE RESTRICT,
     ipv6_id INTEGER DEFAULT NULL REFERENCES ipv6(id) ON DELETE RESTRICT,
     port_range_start INTEGER DEFAULT 0,
@@ -64,14 +69,24 @@ CREATE TABLE containers (
 CREATE TABLE users_containers (
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     container_id INTEGER NOT NULL REFERENCES containers(id) ON DELETE CASCADE,
-    UNIQUE(user_id, container_id)
+
+    UNIQUE (user_id, container_id)
 );
 
 CREATE TABLE container_ports (
-    id SERIAL PRIMARY KEY,
     container_id INTEGER NOT NULL REFERENCES containers(id) ON DELETE CASCADE,
     host_port INTEGER NOT NULL,
-    container_port INTEGER NOT NULL
+    container_port INTEGER NOT NULL,
+
+    UNIQUE (container_id, host_port)
+);
+
+CREATE TABLE container_permissions (
+    container_id INTEGER NOT NULL REFERENCES containers(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    permission TEXT NOT NULL,
+
+    UNIQUE (container_id, user_id, permission)
 );
 
 CREATE INDEX idx_users_auth_uid ON users(auth_uid);

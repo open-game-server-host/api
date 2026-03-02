@@ -1,7 +1,7 @@
 import { Container, getVersion, OGSHError } from "@open-game-server-host/backend-lib";
 import { QueryResult } from "pg";
 import { segmentReserveMethod, SegmentReserveMethod } from "../../daemon/daemon.js";
-import { CreateContainerData } from "../../interfaces/container.js";
+import { CONTAINER_ALL_PERMISSION, ContainerPermission, CreateContainerData } from "../../interfaces/container.js";
 import { Database } from "../db.js";
 import { PostgresClient, PostgresDb } from "./postgresDb.js";
 
@@ -67,13 +67,47 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
             LEFT JOIN regions r ON d.region_id = r.id
             WHERE
                 c.id = $1
-            LIMIT 1`,
-            containerId);
+            LIMIT 1
+        `,
+            containerId
+        );
         if (result.rowCount === 0) {
             throw new OGSHError("general/unspecified", `container id '${containerId}' not found`);
         }
         const row = result.rows[0];
         return this.convertRowToContainer(row);
+    }
+
+    async getUserContainerPermissions(containerId: string, userId: string): Promise<ContainerPermission[]> {
+        const result = await this.query(`
+            SELECT permission
+            FROM container_permissions
+            WHERE
+                container_id = $1
+                AND user_id = $2
+        `,
+            containerId,
+            userId
+        );
+        if (result.rowCount === 0) {
+            return [];
+        }
+        const permissions: ContainerPermission[] = [];
+        result.rows.forEach(row => permissions.push(row.permission));
+        return permissions;
+    }
+
+    async hasUserGotContainerPermissions(containerId: string, userId: string, ...permissions: ContainerPermission[]): Promise<boolean> {
+        const userPerms = await this.getUserContainerPermissions(containerId, userId);
+        if (userPerms.includes(CONTAINER_ALL_PERMISSION)) {
+            return true;
+        }
+        for (const permission of permissions) {
+            if (!userPerms.includes(permission)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private async reserveSegments(client: PostgresClient, reserveMethod: SegmentReserveMethod, regionId: string, segments: number): Promise<string> {
@@ -89,9 +123,11 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
                             AND segments_available >= $1
                         LIMIT 1
                     )
-                    RETURNING id`,
+                    RETURNING id
+                `,
                     segments,
-                    regionId);
+                    regionId
+                );
                 break;
             case "balanced":
                 result = client.query(`
@@ -104,9 +140,11 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
                         ORDER BY segments_available DESC
                         LIMIT 1
                     )
-                    RETURNING id`,
+                    RETURNING id
+                `,
                     segments,
-                    regionId);
+                    regionId
+                );
             default:
                 throw new OGSHError("general/unspecified", `invalid daemon segment reserve method '${reserveMethod}'`);
         }
@@ -123,7 +161,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
         }
         const client = await this.startTransaction();
         const daemonId = await this.reserveSegments(client, segmentReserveMethod, data.regionId, data.segments);
-        const result = await client.query(`
+        const createContainerResult = await client.query(`
             INSERT INTO containers (
                 app_id,
                 variant_id,
@@ -146,7 +184,8 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
                 $8,
                 $9
             )
-            RETURNING id`,
+            RETURNING id
+        `,
             data.appId, // 1
             data.variantId, // 2
             data.versionId, // 3
@@ -157,12 +196,28 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
             data.userId, // 8
             daemonId // 9
         );
-        if (result.rowCount === 0) {
+        if (createContainerResult.rowCount === 0) {
             await client.cancel();
             throw new OGSHError("general/unspecified", `could not create container`);
         }
+        const id = `${createContainerResult.rows[0].id}`;
+        const addPermissionsResult = await client.query(`
+            INSERT INTO container_permissions (
+                container_id,
+                user_id,
+                permission
+            )
+            VALUES (
+                $1, $2, $3
+            )
+        `,
+            id, data.userId, CONTAINER_ALL_PERMISSION
+        );
+        if (addPermissionsResult.rowCount === 0) {
+            await client.cancel();
+            throw new OGSHError("general/unspecified", `failed to give permission '${CONTAINER_ALL_PERMISSION}' to user id '${data.userId}' when creating container id '${id}'`);
+        }
         await client.finish();
-        const id = `${result.rows[0].id}`;
         return this.getContainer(id);
     }
 
@@ -178,7 +233,11 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
                     LIMIT 1
                 )
                 AND terminate_at IS NULL
-            LIMIT 1`, +terminateAt, containerId);
+            LIMIT 1
+        `,
+            +terminateAt,
+            containerId
+        );
         if (result.rowCount === 0) {
             throw new OGSHError("general/unspecified", `container id '${containerId}' either doesn't exist or already has a termination date`);
         }
@@ -206,8 +265,10 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
                 LEFT JOIN regions r ON d.region_id = r.id
             WHERE
                 auth_uid = $1
-                AND terminate_at <= NOW()`,
-            authUid);
+                AND terminate_at <= NOW()
+            `,
+                authUid
+            );
         const containers: Container[] = [];
         result.rows.forEach(row => {
             containers.push(this.convertRowToContainer(row));
@@ -236,8 +297,10 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
                 LEFT JOIN regions r ON d.region_id = r.id
             WHERE
                 c.daemon_id = $1
-                AND (terminate_at IS NULL OR terminate_at <= NOW())`,
-            daemonId);
+                AND (terminate_at IS NULL OR terminate_at <= NOW())
+        `,
+            daemonId
+        );
         const containers: Container[] = [];
         result.rows.forEach(row => {
             containers.push(this.convertRowToContainer(row));

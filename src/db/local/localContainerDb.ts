@@ -1,7 +1,7 @@
 import { Container, ContainerPort, Daemon, getVariant, getVersion, OGSHError, sanitiseDaemon } from "@open-game-server-host/backend-lib";
 import { isContainerTerminated } from "../../container/container.js";
 import { segmentReserveMethod, SegmentReserveMethod } from "../../daemon/daemon.js";
-import { CreateContainerData } from "../../interfaces/container.js";
+import { CONTAINER_ALL_PERMISSION, ContainerPermission, CreateContainerData } from "../../interfaces/container.js";
 import { DATABASE, Database } from "../db.js";
 import { DaemonLocalDbFile } from "./localDaemonDb.js";
 import { LocalDb } from "./localDb.js";
@@ -20,6 +20,9 @@ export interface ContainerLocalDbFile {
     segments: number;
     terminateAt?: number;
     userId: string;
+    users: {
+        [userId: string]: ContainerPermission[];
+    }
     variantId: string;
     versionId: string;
 }
@@ -44,6 +47,24 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
             terminateAt: raw.terminateAt,
             userId: raw.userId,
         }
+    }
+
+    async getUserContainerPermissions(id: string, userId: string): Promise<ContainerPermission[]> {
+        const raw = this.readJsonFile<ContainerLocalDbFile>("container", id);
+        return raw.users[userId] || []
+    }
+
+    async hasUserGotContainerPermissions(containerId: string, userId: string, ...permissions: ContainerPermission[]): Promise<boolean> {
+        const userPerms = await this.getUserContainerPermissions(containerId, userId);
+        if (userPerms.includes(CONTAINER_ALL_PERMISSION)) {
+            return true;
+        }
+        for (const permission of permissions) {
+            if (!userPerms.includes(permission)) {
+                return false;
+            }
+        }
+        return false;
     }
 
     private async reserveSegments(regionId: string, reserveMethod: SegmentReserveMethod, segments: number): Promise<Daemon> {
@@ -158,7 +179,12 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
             createdAt: Date.now(),
             daemonId: daemon.id,
             locked: false,
-            ports: (daemon.portRangeStart && daemon.portRangeEnd) ? assignPorts(daemon.portRangeStart, daemon.portRangeEnd, portsInUse) : []
+            ports: (daemon.portRangeStart && daemon.portRangeEnd) ? assignPorts(daemon.portRangeStart, daemon.portRangeEnd, portsInUse) : [],
+            users: {
+                [data.userId]: [
+                    CONTAINER_ALL_PERMISSION
+                ]
+            }
         });
 
         return this.getContainer(id);
@@ -181,6 +207,7 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
             runtime: container.runtime,
             segments: container.segments,
             userId: container.userId,
+            users: {},
             variantId: container.variantId,
             versionId: container.versionId,
             terminateAt: now + remainingTime
