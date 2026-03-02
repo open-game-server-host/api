@@ -44,7 +44,6 @@ export class PostgresUserDb extends PostgresDb implements Partial<Database> {
     }
 
     async hasUserGotPermissions(userId: string, permissions: UserPermission[]): Promise<boolean> {
-        console.log(`checking if user ${userId} has permissions '${permissions}'`);
         const userPerms = await this.getUserPermissions(userId);
         if (userPerms.includes(USER_ALL_PERMISSION)) {
             return true;
