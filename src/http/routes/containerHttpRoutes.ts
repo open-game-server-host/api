@@ -2,6 +2,8 @@ import { BodyRequest, getVersion, OGSHError, respond } from "@open-game-server-h
 import { Request, Response, Router } from "express";
 import { body, param } from "express-validator";
 import { containerAuthMiddleware, ContainerResponse } from "../../auth/containerAuth.js";
+import { userPermissionMiddleware, UserPermissionResponse } from "../../auth/userAuth.js";
+import { createContainer } from "../../container/container.js";
 import { DATABASE } from "../../db/db.js";
 import { BROKER } from "../../ws/brokers/broker.js";
 
@@ -10,6 +12,28 @@ export const containerHttpRouter = Router();
 const parseContainerId = param("containerId").isString();
 
 type ContainerRequest<B = any> = Request<{ containerId: string }, any, B>;
+
+interface ContainerCreateBody {
+    appId: string;
+    variantId: string;
+    versionId: string;
+    segments: number;
+    name: string;
+    regionId: string;
+}
+containerHttpRouter.post("/container", [
+    body("appId").isString(),
+    body("variantId").isString(),
+    body("versionId").isString(),
+    body("segments").isInt({ min: 1 }), // TODO define max segments in global config
+    body("name").isString().isLength({ min: 1, max: 30}),
+    body("regionId").isString().isLength({ min: 3, max: 3})
+], userPermissionMiddleware("createContainer"), async (req: BodyRequest<ContainerCreateBody>, res: UserPermissionResponse) => {
+    const { appId, variantId, versionId, segments, name, regionId } = req.body;
+    // TODO check user has enough tokens
+    const container = await createContainer(res.locals.user.id, regionId, appId, variantId, versionId, segments, name);
+    respond(res, container);
+});
 
 containerHttpRouter.get("/:containerId", parseContainerId, containerAuthMiddleware(), async (req: ContainerRequest, res: ContainerResponse) => {
     respond(res, res.locals.container);
