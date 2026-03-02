@@ -182,13 +182,7 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
             ports: (daemon.portRangeStart && daemon.portRangeEnd) ? assignPorts(daemon.portRangeStart, daemon.portRangeEnd, portsInUse) : [],
             users: {
                 [data.userId]: [
-                    "command",
-                    "install",
-                    "kill",
-                    "setRuntime",
-                    "start",
-                    "stop",
-                    "terminate"
+                    CONTAINER_ALL_PERMISSION
                 ]
             }
         });

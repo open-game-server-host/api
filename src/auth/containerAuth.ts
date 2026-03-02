@@ -12,7 +12,7 @@ export interface ContainerLocals {
 
 export type ContainerResponse = Response<any, ContainerLocals>;
 
-export function containerAuthMiddleware(permissions: ContainerPermission[] = []): (req: Request, res: ContainerResponse, next: NextFunction) => Promise<void> {
+export function containerAuthMiddleware(...permissions: ContainerPermission[]): (req: Request, res: ContainerResponse, next: NextFunction) => Promise<void> {
     return async (req, res, next) => {
         const containerId = req.params.containerId;
         if (typeof containerId !== "string") {
