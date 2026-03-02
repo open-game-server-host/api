@@ -112,7 +112,7 @@ export abstract class PostgresDb implements PostgresClient {
     }
 }
 
-export class PostgresTransaction implements PostgresClient {
+class PostgresTransaction implements PostgresClient {
     private finished = false;
 
     constructor(private readonly client: PoolClient) {

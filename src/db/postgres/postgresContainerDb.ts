@@ -3,7 +3,7 @@ import { QueryResult } from "pg";
 import { segmentReserveMethod, SegmentReserveMethod } from "../../daemon/daemon.js";
 import { CreateContainerData } from "../../interfaces/container.js";
 import { Database } from "../db.js";
-import { PostgresClient, PostgresDb, PostgresTransaction } from "./postgresDb.js";
+import { PostgresClient, PostgresDb } from "./postgresDb.js";
 
 export class PostgresContainerDb extends PostgresDb implements Partial<Database> {
     private convertRowToContainer(row: any): Container {
