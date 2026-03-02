@@ -64,7 +64,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
             JOIN daemons d ON c.daemon_id=d.id
             LEFT JOIN ipv4 v4 ON d.ipv4_id = v4.id
             LEFT JOIN ipv6 v6 ON d.ipv6_id = v6.id
-            JOIN regions r ON d.region_id = r.id
+            LEFT JOIN regions r ON d.region_id = r.id
             WHERE
                 c.id = $1
             LIMIT 1`,
@@ -203,7 +203,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
                 JOIN daemons d ON c.daemon_id=d.id
                 LEFT JOIN ipv4 v4 ON d.ipv4_id = v4.id
                 LEFT JOIN ipv6 v6 ON d.ipv6_id = v6.id
-                JOIN regions r ON d.region_id = r.id
+                LEFT JOIN regions r ON d.region_id = r.id
             WHERE
                 auth_uid = $1
                 AND terminate_at <= NOW()`,
@@ -234,7 +234,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
                 JOIN daemons d ON c.daemon_id=d.id
                 LEFT JOIN ipv4 v4 ON d.ipv4_id = v4.id
                 LEFT JOIN ipv6 v6 ON d.ipv6_id = v6.id
-                JOIN regions r ON d.region_id = r.id
+                LEFT JOIN regions r ON d.region_id = r.id
             WHERE
                 daemon_id = $1
                 AND terminate_at <= NOW()`,
