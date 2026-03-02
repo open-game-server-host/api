@@ -8,7 +8,7 @@ CREATE TABLE user_permissions (
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     permission TEXT NOT NULL,
 
-    UNIQUE (user_id, permissions)
+    UNIQUE (user_id, permission)
 );
 
 CREATE TABLE ipv4 (
