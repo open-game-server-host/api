@@ -123,14 +123,12 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
         }
         const client = await this.startTransaction();
         const daemonId = await this.reserveSegments(client, segmentReserveMethod, data.regionId, data.segments);
-        console.log(`daemon id: ${daemonId}`);
         const result = await client.query(`
             INSERT INTO containers (
                 app_id,
                 variant_id,
                 version_id,
                 contract_length_days,
-                free,
                 name,
                 runtime,
                 segments,
@@ -146,23 +144,19 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
                 $6,
                 $7,
                 $8,
-                $9,
-                $10
+                $9
             )
-            RETURNING app_id`,
+            RETURNING id`,
             data.appId, // 1
             data.variantId, // 2
             data.versionId, // 3
             30, // 4 TODO specified by the plan the user selects during checkout
-            false, // 5
-            data.name, // 6
-            version.defaultRuntime, // 7
-            data.segments, // 8
-            data.userId, // 9
-            daemonId // 10
-        ).catch(error => {
-            throw error;
-        });
+            data.name, // 5
+            version.defaultRuntime, // 6
+            data.segments, // 7
+            data.userId, // 8
+            daemonId // 9
+        );
         if (result.rowCount === 0) {
             await client.cancel();
             throw new OGSHError("general/unspecified", `could not create container`);
