@@ -4,6 +4,7 @@ import { ContainerLocalDbFile } from "../db/local/localContainerDb.js";
 import { BROKER } from "../ws/brokers/broker.js";
 
 export async function createContainer(userId: string, regionId: string, appId: string, variantId: string, versionId: string, segments: number, name: string): Promise<Container> {
+    console.log(2);
     const container = await DATABASE.createContainer({
         appId: appId,
         variantId: variantId,
@@ -14,6 +15,7 @@ export async function createContainer(userId: string, regionId: string, appId: s
         regionId: regionId,
         userId: userId
     });
+    console.log(3);
 
     await BROKER.registerContainer(container.daemon.id, container.id, {
         containerId: container.id,
@@ -23,11 +25,13 @@ export async function createContainer(userId: string, regionId: string, appId: s
         segments,
         ports: container.ports
     });
+    console.log(4);
     await BROKER.installContainer(container.daemon.id, container.id, {
         appId,
         variantId,
         versionId
     });
+    console.log(5);
 
     return container;
 }
