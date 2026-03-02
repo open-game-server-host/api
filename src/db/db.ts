@@ -3,6 +3,7 @@ import { getDbType } from "../env.js";
 import { ContainerPermission, CreateContainerData } from "../interfaces/container.js";
 import { SetupDaemonData, SetupIncompleteDaemon } from "../interfaces/daemon.js";
 import { CreateRegionData } from "../interfaces/region.js";
+import { UserPermission } from "../interfaces/user.js";
 import { LocalContainerDb } from "./local/localContainerDb.js";
 import { LocalDaemonDb } from "./local/localDaemonDb.js";
 import { LocalIpv4Db, LocalIpv6Db } from "./local/localIpDb.js";
@@ -52,6 +53,8 @@ export interface Database {
     doesUserExist(userId: string): Promise<boolean>;
     getUser(authUid: string): Promise<User>;
     createUser(authUid: string): Promise<User>;
+    getUserPermissions(userId: string): Promise<UserPermission[]>;
+    hasUserGotPermissions(userId: string, permissions: UserPermission[]): Promise<boolean>;
 }
 
 export const DATABASE = createDb();
@@ -104,7 +107,9 @@ function createLocalDb(): Database {
 
         doesUserExist: userDb.doesUserExist.bind(userDb),
         getUser: userDb.getUser.bind(userDb),
-        createUser: userDb.createUser.bind(userDb)
+        createUser: userDb.createUser.bind(userDb),
+        getUserPermissions: userDb.getUserPermissions.bind(userDb),
+        hasUserGotPermissions: userDb.hasUserGotPermissions.bind(userDb)
     }
 }
 
@@ -147,6 +152,8 @@ function createPostgresDb(): Database {
 
         doesUserExist: userDb.doesUserExist.bind(userDb),
         getUser: userDb.getUser.bind(userDb),
-        createUser: userDb.createUser.bind(userDb)
+        createUser: userDb.createUser.bind(userDb),
+        getUserPermissions: userDb.getUserPermissions.bind(userDb),
+        hasUserGotPermissions: userDb.hasUserGotPermissions.bind(userDb)
     }
 }

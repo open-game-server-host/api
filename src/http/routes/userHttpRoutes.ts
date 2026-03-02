@@ -37,22 +37,22 @@ meHttpRouter.post("/container", [
     body("segments").isInt({ min: 1 }), // TODO define max segments in global config
     body("name").isString().isLength({ min: 1, max: 30}),
     body("regionId").isString().isLength({ min: 3, max: 3})
-], userPermissionMiddleware(["createContainer"]), async (req: BodyRequest<ContainerCreateBody>, res: UserPermissionResponse) => {
+], userPermissionMiddleware("createContainer"), async (req: BodyRequest<ContainerCreateBody>, res: UserPermissionResponse) => {
     const { appId, variantId, versionId, segments, name, regionId } = req.body;
     // TODO check user has enough tokens
     const container = await createContainer(res.locals.user.id, regionId, appId, variantId, versionId, segments, name);
     respond(res, container);
 });
 
-meHttpRouter.post("/daemon", userPermissionMiddleware(["createDaemon"]), async (req, res) => {
+meHttpRouter.post("/daemon", userPermissionMiddleware("createDaemon"), async (req, res) => {
     const daemon = await DATABASE.createDaemon();
     respond(res, daemon);
 });
 
-meHttpRouter.post("/daemons", userPermissionMiddleware(["listDaemons"]), async (req, res) => {
+meHttpRouter.post("/daemons", userPermissionMiddleware("listDaemons"), async (req, res) => {
     throw new OGSHError("general/unspecified", `not implemented`);
 });
 
-meHttpRouter.delete("/daemon/:daemonId", userPermissionMiddleware(["removeDaemon"]), async (req, res) => {
+meHttpRouter.delete("/daemon/:daemonId", userPermissionMiddleware("removeDaemon"), async (req, res) => {
     throw new OGSHError("general/unspecified", `not implemented`);
 });

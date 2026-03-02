@@ -1,6 +1,7 @@
-import { OGSHError, User, UserPermission } from "@open-game-server-host/backend-lib";
+import { OGSHError, User } from "@open-game-server-host/backend-lib";
 import { NextFunction, Request, Response } from "express";
 import { DATABASE } from "../db/db.js";
+import { UserPermission } from "../interfaces/user.js";
 import { AUTH, AuthUid } from "./user/auth.js";
 
 export interface UserLocals {
@@ -33,14 +34,12 @@ export interface UserPermissionLocals {
 }
 export type UserPermissionResponse = Response<any, UserPermissionLocals>;
 
-export function userPermissionMiddleware(permissions: UserPermission[] = []): (req: Request, res: UserPermissionResponse, next: NextFunction) => Promise<void> {
+export function userPermissionMiddleware(...permissions: UserPermission[]): (req: Request, res: UserPermissionResponse, next: NextFunction) => Promise<void> {
     return async (req, res, next) => {
         const authUid = await authenticateUser(req);
         res.locals.user = await DATABASE.getUser(authUid);
-        for (const permission of permissions) {
-            if (!res.locals.user.permissions.includes(permission)) {
-                throw new OGSHError("auth/invalid", `user id '${res.locals.user.id}' does not have permission '${permission}'`);
-            }
+        if (!await DATABASE.hasUserGotPermissions(res.locals.user.id, permissions)) {
+            throw new OGSHError("auth/invalid", `user id '${res.locals.user.id}' does not have permissions '${permissions}'`);
         }
         next();
     };
