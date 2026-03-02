@@ -1,4 +1,4 @@
-import { BodyRequest, respond } from "@open-game-server-host/backend-lib";
+import { BodyRequest, respond, sanitiseDaemon, UpdateDaemonData } from "@open-game-server-host/backend-lib";
 import { Router } from "express";
 import { daemonAuthMiddleware, DaemonResponse } from "../../auth/daemonAuth.js";
 import { DATABASE } from "../../db/db.js";
@@ -12,29 +12,37 @@ daemonHttpRouter.post("/", async (req, res) => {
     respond(res, daemon);
 });
 
-// TODO verify daemon api key
-daemonHttpRouter.post("/:daemonId/setup", async (req: BodyRequest<SetupDaemonData>, res) => {
-    const daemon = await DATABASE.setupDaemon(req.params.daemonId, req.body);
-    respond(res, daemon);
+daemonHttpRouter.post("/update", daemonAuthMiddleware, async (req: BodyRequest<UpdateDaemonData>, res: DaemonResponse) => {
+    await DATABASE.updateDaemon(res.locals.daemon.id, req.body);
+    respond(res);
 });
 
-// daemonHttpRouter.get("/:daemonId", async (req, res) => {
-//     const daemonId = req.params.daemonId;
-//     const daemon = await DATABASE.getDaemon(daemonId);
-//     respond(res, daemon);
-// });
+// TODO this should be executed by a person with correct permissions
+daemonHttpRouter.post("/setup/:daemonId", async (req: BodyRequest<SetupDaemonData>, res) => {
+    await DATABASE.setupDaemon(req.params.daemonId, req.body);
+    respond(res);
+});
 
-daemonHttpRouter.post("/:daemonId/containers", daemonAuthMiddleware, async (req, res: DaemonResponse) => {
+daemonHttpRouter.post("/update", daemonAuthMiddleware, async (req: BodyRequest<UpdateDaemonData>, res: DaemonResponse) => {
+    await DATABASE.updateDaemon(res.locals.daemon.id, req.body);
+    respond(res);
+});
+
+daemonHttpRouter.get("/", daemonAuthMiddleware, async (req, res) => {
+    respond(res, sanitiseDaemon(res.locals.daemon));
+});
+
+daemonHttpRouter.post("/containers", daemonAuthMiddleware, async (req, res: DaemonResponse) => {
     const containers = await DATABASE.listActiveContainersByDaemon(res.locals.daemon.id);
     respond(res, containers);
 });
 
 // TODO this should be executed by a person with correct permissions
 daemonHttpRouter.post("/list", async (req, res) => {
-
+    throw new Error("not implemented");
 });
 
 // TODO this should be executed by a person with correct permissions
 daemonHttpRouter.delete("/:daemonId", async (req, res) => {
-
+    throw new Error("not implemented");
 });

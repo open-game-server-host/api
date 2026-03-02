@@ -1,7 +1,7 @@
 import { formatErrorResponseBody, getUrlQueryParams, Logger, OGSHError, WsMsg, WsRouter } from "@open-game-server-host/backend-lib";
 import { WebSocket, WebSocketServer } from "ws";
 import { authenticateUser } from "../auth/userAuth.js";
-import { isDaemonApiKeyValid } from "../daemon/daemon.js";
+import { hashDaemonApiKey } from "../daemon/daemon.js";
 import { DATABASE } from "../db/db.js";
 import { BROKER } from "./brokers/broker.js";
 import { containerWsRouter } from "./routes/containerWsRoutes.js";
@@ -49,15 +49,12 @@ wsServer.on("connection", async (ws, req) => {
         }
         const params = getUrlQueryParams<Params>(req.url); // TODO this might be bad because it logs in the browser and malicious addons could scrape your auth token
         type = params.type || "user";
-        id = params.id;
         const { authToken, containerId } = params;
         if (typeof type !== "string") throw new OGSHError("ws/invalid-params", `'type' should be a string`);
-        if (typeof id !== "string") throw new OGSHError("ws/invalid-params", `'id' should be a string`);
         if (typeof authToken !== "string") throw new OGSHError("ws/invalid-params", `'authToken' should be a string`);
 
         logger.info("Connection", {
-            type,
-            id
+            type
         });
 
         switch (type) {
@@ -74,10 +71,9 @@ wsServer.on("connection", async (ws, req) => {
                 break;
             }
             case "daemon": {
-                const daemon = await DATABASE.getDaemon(id);
-                if (!isDaemonApiKeyValid(authToken as string, daemon.apiKeyHash)) {
-                    throw new OGSHError("auth/invalid", `invalid api key for daemon id '${id}'`);
-                }
+                const hash = hashDaemonApiKey(authToken);
+                const daemon = await DATABASE.getDaemonByApiKeyHash(hash);
+                id = daemon.id;
                 await BROKER.registerDaemonConnection(daemon.id, ws);
                 ws.on("message", (data, isBinary) => handleWsMessage(ws, data, isBinary));
                 break;

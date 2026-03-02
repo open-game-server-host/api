@@ -1,13 +1,19 @@
-import { Container, Daemon, Ip, OGSHError, Region, User } from "@open-game-server-host/backend-lib";
+import { Container, Daemon, Ip, OGSHError, Region, UpdateDaemonData, User } from "@open-game-server-host/backend-lib";
 import { getDbType } from "../env.js";
-import { CreateContainerData } from "../interfaces/container.js";
+import { ContainerPermission, CreateContainerData } from "../interfaces/container.js";
 import { SetupDaemonData, SetupIncompleteDaemon } from "../interfaces/daemon.js";
 import { CreateRegionData } from "../interfaces/region.js";
+import { UserPermission } from "../interfaces/user.js";
 import { LocalContainerDb } from "./local/localContainerDb.js";
 import { LocalDaemonDb } from "./local/localDaemonDb.js";
 import { LocalIpv4Db, LocalIpv6Db } from "./local/localIpDb.js";
 import { LocalRegionDb } from "./local/localRegionDb.js";
 import { LocalUserDb } from "./local/localUserDb.js";
+import { PostgresContainerDb } from "./postgres/postgresContainerDb.js";
+import { PostgresDaemonDb } from "./postgres/postgresDaemonDb.js";
+import { PostgresIpv4Db, PostgresIpv6Db } from "./postgres/postgresIpDb.js";
+import { PostgresRegionDb } from "./postgres/postgresRegionDb.js";
+import { PostgresUserDb } from "./postgres/postgresUserDb.js";
 
 export type DbType =
     | "local"
@@ -16,15 +22,19 @@ export type DbType =
 
 export interface Database {
     getContainer(containerId: string): Promise<Container>;
+    getUserContainerPermissions(containerId: string, userId: string): Promise<ContainerPermission[]>;
+    hasUserGotContainerPermissions(containerId: string, userId: string, ...permissions: ContainerPermission[]): Promise<boolean>;
     createContainer(data: CreateContainerData): Promise<Container>;
-    terminateContainer(containerId: string): Promise<Container>;
-    listActiveContainersByUser(uid: string): Promise<Container[]>; // TOOD paginate
+    terminateContainer(containerId: string, terminateAt: Date): Promise<void>;
+    listActiveContainersByUser(authUid: string): Promise<Container[]>; // TOOD paginate
     listActiveContainersByDaemon(daemonId: string): Promise<Container[]>; // TODO paginate
     // logContainerAction(containerId: string, action: string, data: string): Promise<void>;
 
     getDaemon(daemonId: string): Promise<Daemon>;
-    createDaemon(): Promise<SetupIncompleteDaemon & { apiKey: string }>;
-    setupDaemon(daemonId: string, data: SetupDaemonData): Promise<Daemon>;
+    getDaemonByApiKeyHash(apiKeyHash: string): Promise<Daemon | SetupIncompleteDaemon>;
+    createDaemon(): Promise<string>; // Returns API key
+    updateDaemon(daemonId: string, data: UpdateDaemonData): Promise<void>;
+    setupDaemon(daemonId: string, data: SetupDaemonData): Promise<void>;
     listDaemonsByRegion(regionId: string): Promise<Daemon[]>; // TODO paginate
     listSetupIncompleteDaemons(): Promise<SetupIncompleteDaemon[]>; // TODO paginate
 
@@ -36,13 +46,15 @@ export interface Database {
     getIpv6ByIp(ipv6: string): Promise<Ip>;
     listIpv6s(): Promise<Ip[]>; // TODO paginate
 
-    getRegion(ipId: string): Promise<Region>;
+    getRegion(regionId: string): Promise<Region>;
     createRegion(data: CreateRegionData): Promise<Region>;
     listRegions(): Promise<Region[]>;
 
-    doesUserExist(id: string): Promise<boolean>;
+    doesUserExist(userId: string): Promise<boolean>;
     getUser(authUid: string): Promise<User>;
     createUser(authUid: string): Promise<User>;
+    getUserPermissions(userId: string): Promise<UserPermission[]>;
+    hasUserGotPermissions(userId: string, permissions: UserPermission[]): Promise<boolean>;
 }
 
 export const DATABASE = createDb();
@@ -65,14 +77,18 @@ function createLocalDb(): Database {
     const userDb = new LocalUserDb();
 
     return {
+        getContainer: containerDb.getContainer.bind(containerDb),
+        getUserContainerPermissions: containerDb.getUserContainerPermissions.bind(containerDb),
+        hasUserGotContainerPermissions: containerDb.hasUserGotContainerPermissions.bind(containerDb),
         createContainer: containerDb.createContainer.bind(containerDb),
         terminateContainer: containerDb.terminateContainer.bind(containerDb),
-        getContainer: containerDb.getContainer.bind(containerDb),
         listActiveContainersByDaemon: containerDb.listActiveContainersByDaemon.bind(containerDb),
         listActiveContainersByUser: containerDb.listActiveContainersByUser.bind(containerDb),
         
         getDaemon: daemonDb.getDaemon.bind(daemonDb),
+        getDaemonByApiKeyHash: daemonDb.getDaemonByApiKeyHash.bind(daemonDb),
         createDaemon: daemonDb.createDaemon.bind(daemonDb),
+        updateDaemon: daemonDb.updateDaemon.bind(daemonDb),
         setupDaemon: daemonDb.setupDaemon.bind(daemonDb),
         listDaemonsByRegion: daemonDb.listDaemonsByRegion.bind(daemonDb),
         listSetupIncompleteDaemons: daemonDb.listSetupIncompleteDaemons.bind(daemonDb),
@@ -91,42 +107,53 @@ function createLocalDb(): Database {
 
         doesUserExist: userDb.doesUserExist.bind(userDb),
         getUser: userDb.getUser.bind(userDb),
-        createUser: userDb.createUser.bind(userDb)
+        createUser: userDb.createUser.bind(userDb),
+        getUserPermissions: userDb.getUserPermissions.bind(userDb),
+        hasUserGotPermissions: userDb.hasUserGotPermissions.bind(userDb)
     }
 }
 
 function createPostgresDb(): Database {
-    function notImplemented<T>(): Promise<T> {
-        throw new Error("not implemented");
-    }
+    const containerDb = new PostgresContainerDb();
+    const daemonDb = new PostgresDaemonDb();
+    const ipv4Db = new PostgresIpv4Db();
+    const ipv6Db = new PostgresIpv6Db();
+    const regionDb = new PostgresRegionDb();
+    const userDb = new PostgresUserDb();
 
     return {
-        createContainer: notImplemented<Container>,
-        terminateContainer: notImplemented<Container>,
-        getContainer: notImplemented<Container>,
-        listActiveContainersByDaemon: notImplemented<Container[]>,
-        listActiveContainersByUser: notImplemented<Container[]>,
-        listSetupIncompleteDaemons: notImplemented<SetupIncompleteDaemon[]>,
+        getContainer: containerDb.getContainer.bind(containerDb),
+        getUserContainerPermissions: containerDb.getUserContainerPermissions.bind(containerDb),
+        hasUserGotContainerPermissions: containerDb.hasUserGotContainerPermissions.bind(containerDb),
+        createContainer: containerDb.createContainer.bind(containerDb),
+        terminateContainer: containerDb.terminateContainer.bind(containerDb),
+        listActiveContainersByDaemon: containerDb.listActiveContainersByDaemon.bind(containerDb),
+        listActiveContainersByUser: containerDb.listActiveContainersByUser.bind(containerDb),
+        
+        getDaemon: daemonDb.getDaemon.bind(daemonDb),
+        getDaemonByApiKeyHash: daemonDb.getDaemonByApiKeyHash.bind(daemonDb),
+        createDaemon: daemonDb.createDaemon.bind(daemonDb),
+        updateDaemon: daemonDb.updateDaemon.bind(daemonDb),
+        setupDaemon: daemonDb.setupDaemon.bind(daemonDb),
+        listDaemonsByRegion: daemonDb.listDaemonsByRegion.bind(daemonDb),
+        listSetupIncompleteDaemons: daemonDb.listSetupIncompleteDaemons.bind(daemonDb),
 
-        getDaemon: notImplemented<Daemon>,
-        createDaemon: notImplemented<SetupIncompleteDaemon & { apiKey: string }>,
-        setupDaemon: notImplemented<Daemon>,
-        listDaemonsByRegion: notImplemented<Daemon[]>,
+        getIpv4: ipv4Db.getIpv4.bind(ipv4Db),
+        getIpv4ByIp: ipv4Db.getIpv4ByIp.bind(ipv4Db),
+        listIpv4s: ipv4Db.listIpv4s.bind(ipv4Db),
 
-        getIpv4: notImplemented<Ip>,
-        getIpv4ByIp: notImplemented<Ip>,
-        listIpv4s: notImplemented<Ip[]>,
+        getIpv6: ipv6Db.getIpv6.bind(ipv6Db),
+        getIpv6ByIp: ipv6Db.getIpv6ByIp.bind(ipv6Db),
+        listIpv6s: ipv6Db.listIpv6s.bind(ipv6Db),
 
-        getIpv6: notImplemented<Ip>,
-        getIpv6ByIp: notImplemented<Ip>,
-        listIpv6s: notImplemented<Ip[]>,
+        getRegion: regionDb.getRegion.bind(regionDb),
+        createRegion: regionDb.createRegion.bind(regionDb),
+        listRegions: regionDb.listRegions.bind(regionDb),
 
-        getRegion: notImplemented<Region>,
-        createRegion: notImplemented<Region>,
-        listRegions: notImplemented<Region[]>,
-
-        doesUserExist: notImplemented<boolean>,
-        getUser: notImplemented<User>,
-        createUser: notImplemented<User>
+        doesUserExist: userDb.doesUserExist.bind(userDb),
+        getUser: userDb.getUser.bind(userDb),
+        createUser: userDb.createUser.bind(userDb),
+        getUserPermissions: userDb.getUserPermissions.bind(userDb),
+        hasUserGotPermissions: userDb.hasUserGotPermissions.bind(userDb)
     }
 }

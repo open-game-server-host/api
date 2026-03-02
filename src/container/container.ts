@@ -1,14 +1,9 @@
-import { Container, getVersion, OGSHError } from "@open-game-server-host/backend-lib";
+import { Container } from "@open-game-server-host/backend-lib";
 import { DATABASE } from "../db/db.js";
 import { ContainerLocalDbFile } from "../db/local/localContainerDb.js";
 import { BROKER } from "../ws/brokers/broker.js";
 
 export async function createContainer(userId: string, regionId: string, appId: string, variantId: string, versionId: string, segments: number, name: string): Promise<Container> {
-    const version = await getVersion(appId, variantId, versionId);
-    if (!version) {
-        throw new OGSHError("app/version-not-found", `failed to create container with app id '${appId}' variant id '${variantId}' version id '${version}'`);
-    }
-
     const container = await DATABASE.createContainer({
         appId: appId,
         variantId: variantId,
@@ -17,7 +12,6 @@ export async function createContainer(userId: string, regionId: string, appId: s
         free: false,
         name,
         regionId: regionId,
-        runtime: version.defaultRuntime,
         userId: userId
     });
 
@@ -27,8 +21,13 @@ export async function createContainer(userId: string, regionId: string, appId: s
         variantId,
         versionId,
         segments,
-        ipv4Ports: container.ipv4Ports,
-        ipv6Ports: container.ipv6Ports
+        ports: container.ports
+    });
+
+    await BROKER.installContainer(container.daemon.id, container.id, {
+        appId,
+        variantId,
+        versionId
     });
 
     return container;
