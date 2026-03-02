@@ -22,6 +22,7 @@ export type DbType =
 export interface Database {
     getContainer(containerId: string): Promise<Container>;
     getUserContainerPermissions(containerId: string, userId: string): Promise<ContainerPermission[]>;
+    hasUserGotContainerPermissions(containerId: string, userId: string, ...permissions: ContainerPermission[]): Promise<boolean>;
     createContainer(data: CreateContainerData): Promise<Container>;
     terminateContainer(containerId: string, terminateAt: Date): Promise<void>;
     listActiveContainersByUser(authUid: string): Promise<Container[]>; // TOOD paginate
@@ -75,6 +76,7 @@ function createLocalDb(): Database {
     return {
         getContainer: containerDb.getContainer.bind(containerDb),
         getUserContainerPermissions: containerDb.getUserContainerPermissions.bind(containerDb),
+        hasUserGotContainerPermissions: containerDb.hasUserGotContainerPermissions.bind(containerDb),
         createContainer: containerDb.createContainer.bind(containerDb),
         terminateContainer: containerDb.terminateContainer.bind(containerDb),
         listActiveContainersByDaemon: containerDb.listActiveContainersByDaemon.bind(containerDb),
@@ -117,6 +119,7 @@ function createPostgresDb(): Database {
     return {
         getContainer: containerDb.getContainer.bind(containerDb),
         getUserContainerPermissions: containerDb.getUserContainerPermissions.bind(containerDb),
+        hasUserGotContainerPermissions: containerDb.hasUserGotContainerPermissions.bind(containerDb),
         createContainer: containerDb.createContainer.bind(containerDb),
         terminateContainer: containerDb.terminateContainer.bind(containerDb),
         listActiveContainersByDaemon: containerDb.listActiveContainersByDaemon.bind(containerDb),

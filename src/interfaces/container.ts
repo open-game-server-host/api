@@ -23,3 +23,5 @@ export type ContainerPermission =
     | "changeRegion"
     | "makeBackup"
 ;
+
+export const CONTAINER_ALL_PERMISSION: ContainerPermission = "*";

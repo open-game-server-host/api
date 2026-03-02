@@ -1,7 +1,7 @@
 import { Container, ContainerPort, Daemon, getVariant, getVersion, OGSHError, sanitiseDaemon } from "@open-game-server-host/backend-lib";
 import { isContainerTerminated } from "../../container/container.js";
 import { segmentReserveMethod, SegmentReserveMethod } from "../../daemon/daemon.js";
-import { ContainerPermission, CreateContainerData } from "../../interfaces/container.js";
+import { CONTAINER_ALL_PERMISSION, ContainerPermission, CreateContainerData } from "../../interfaces/container.js";
 import { DATABASE, Database } from "../db.js";
 import { DaemonLocalDbFile } from "./localDaemonDb.js";
 import { LocalDb } from "./localDb.js";
@@ -52,6 +52,19 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
     async getUserContainerPermissions(id: string, userId: string): Promise<ContainerPermission[]> {
         const raw = this.readJsonFile<ContainerLocalDbFile>("container", id);
         return raw.users[userId] || []
+    }
+
+    async hasUserGotContainerPermissions(containerId: string, userId: string, ...permissions: ContainerPermission[]): Promise<boolean> {
+        const userPerms = await this.getUserContainerPermissions(containerId, userId);
+        if (userPerms.includes(CONTAINER_ALL_PERMISSION)) {
+            return true;
+        }
+        for (const permission of permissions) {
+            if (!userPerms.includes(permission)) {
+                return false;
+            }
+        }
+        return false;
     }
 
     private async reserveSegments(regionId: string, reserveMethod: SegmentReserveMethod, segments: number): Promise<Daemon> {
