@@ -6,8 +6,8 @@ on:
     - '*'
 
 jobs:
-  deploy:
-    runs-on: ubuntu-slim
+  build:
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
@@ -17,14 +17,14 @@ jobs:
     - name: Set up Node
       uses: actions/setup-node@v6
       with:
-        node-version: 25
+        node-version: 24
         registry-url: https://npm.pkg.github.com/
-    - run: npm i
+    - name: Build project
+      run: npm i
       env:
         NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    - run: |
-        npm i -g typescript
-        tsc
+    - run: npm i -g typescript
+    - run: tsc
     - name: Docker login
       uses: docker/login-action@v3
       with:

@@ -15,8 +15,7 @@ export interface ContainerLocalDbFile {
     free: boolean;
     locked: boolean;
     name: string;
-    ipv4Ports: ContainerPort[];
-    ipv6Ports: ContainerPort[];
+    ports: ContainerPort[];
     runtime: string;
     segments: number;
     terminateAt?: number;
@@ -42,8 +41,7 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
             id,
             locked: raw.locked,
             name: raw.name,
-            ipv4Ports: raw.ipv4Ports,
-            ipv6Ports: raw.ipv6Ports,
+            ports: raw.ports,
             runtime: raw.runtime,
             segments: raw.segments,
             terminateAt: raw.terminateAt,
@@ -64,8 +62,7 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
             id,
             locked: raw.locked,
             name: raw.name,
-            ipv4Ports: raw.ipv4Ports,
-            ipv6Ports: raw.ipv6Ports,
+            ports: raw.ports,
             runtime: raw.runtime,
             segments: raw.segments,
             terminateAt: raw.terminateAt,
@@ -88,12 +85,10 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
                             ipv4Id: daemon.ipv4?.id,
                             ipv6Id: daemon.ipv6?.id,
                             os: daemon.os,
-                            ipv4PortRangeStart: daemon.ipv4PortRangeStart,
-                            ipv4PortRangeEnd: daemon.ipv4PortRangeEnd,
-                            ipv6PortRangeStart: daemon.ipv6PortRangeStart,
-                            ipv6PortRangeEnd: daemon.ipv6PortRangeEnd,
+                            portRangeStart: daemon.portRangeStart,
+                            portRangeEnd: daemon.portRangeEnd,
                             regionId: daemon.region!.id,
-                            segments: daemon.segments,
+                            segmentsUsable: daemon.segmentsUsable,
                             segmentsAvailable: daemon.segmentsAvailable,
                             setupComplete: daemon.setupComplete
                         });
@@ -120,12 +115,10 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
                             ipv4Id: selectedDaemon.ipv4?.id,
                             ipv6Id: selectedDaemon.ipv6?.id,
                             os: selectedDaemon.os,
-                            ipv4PortRangeStart: selectedDaemon.ipv4PortRangeStart,
-                            ipv4PortRangeEnd: selectedDaemon.ipv4PortRangeEnd,
-                            ipv6PortRangeStart: selectedDaemon.ipv6PortRangeStart,
-                            ipv6PortRangeEnd: selectedDaemon.ipv6PortRangeEnd,
+                            portRangeStart: selectedDaemon.portRangeStart,
+                            portRangeEnd: selectedDaemon.portRangeEnd,
                             regionId: selectedDaemon.region!.id,
-                            segments: selectedDaemon.segments,
+                            segmentsUsable: selectedDaemon.segmentsUsable,
                             segmentsAvailable: selectedDaemon.segmentsAvailable! - segments,
                             setupComplete: selectedDaemon.setupComplete
                     });
@@ -170,11 +163,9 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
             }
             return ports;
         }
-        const ipv4PortsInUse: number[] = [];
-        const ipv6PortsInuse: number[] = [];
+        const portsInUse: number[] = [];
         for (const container of await this.listActiveContainersByDaemon(daemon.id)) {
-            container.ipv4Ports.forEach(ports => ipv4PortsInUse.push(ports.hostPort));
-            container.ipv6Ports.forEach(ports => ipv6PortsInuse.push(ports.hostPort));
+            container.ports.forEach(ports => portsInUse.push(ports.hostPort));
         }
 
         const id = this.createUniqueId("container");
@@ -192,8 +183,7 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
             createdAt: Date.now(),
             daemonId: daemon.id,
             locked: false,
-            ipv4Ports: (daemon.ipv4PortRangeStart && daemon.ipv4PortRangeEnd) ? assignPorts(daemon.ipv4PortRangeStart, daemon.ipv4PortRangeEnd, ipv4PortsInUse) : [],
-            ipv6Ports: (daemon.ipv6PortRangeStart && daemon.ipv6PortRangeEnd) ? assignPorts(daemon.ipv6PortRangeStart, daemon.ipv6PortRangeEnd, ipv6PortsInuse) : [],
+            ports: (daemon.portRangeStart && daemon.portRangeEnd) ? assignPorts(daemon.portRangeStart, daemon.portRangeEnd, portsInUse) : [],
             users: {
                 [data.userId]: [
                     "command",
@@ -210,7 +200,7 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
         return this.getContainer(id);
     }
 
-    async terminateContainer(id: string): Promise<Container> {
+    async terminateContainer(id: string) {
         const container = await this.getContainer(id);
         const now = Date.now();
         const remainingTime = (now - container.createdAt) / (container.contractLengthDays * 86_400_000);
@@ -221,8 +211,7 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
             daemonId: container.daemon.id,
             free: container.free,
             id,
-            ipv4Ports: container.ipv4Ports,
-            ipv6Ports: container.ipv6Ports,
+            ports: container.ports,
             locked: container.locked,
             name: container.name,
             runtime: container.runtime,
@@ -233,7 +222,6 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
             versionId: container.versionId,
             terminateAt: now + remainingTime
         });
-        return container;
     }
 
     async listActiveContainersByDaemon(daemonId: string): Promise<Container[]> {

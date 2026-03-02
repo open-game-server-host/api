@@ -15,7 +15,13 @@ containerHttpRouter.get("/:containerId", parseContainerId, containerAuthMiddlewa
     respond(res, res.locals.containerWithPermissions);
 });
 
+containerHttpRouter.get("/:containerId", parseContainerId, async (req: ContainerRequest, res) => {
+    const container = DATABASE.getContainer(req.params.containerId);
+    respond(res, container);
+});
+
 containerHttpRouter.delete("/:containerId", parseContainerId, containerAuthMiddleware(["terminate"]), async (req: ContainerRequest, res: ContainerResponse) => {
+    await DATABASE.terminateContainer(res.locals.containerWithPermissions.id, new Date()); // TODO in the future support selecting termination date
     await BROKER.removeContainer(res.locals.containerWithPermissions.daemon.id, res.locals.containerWithPermissions.id)
     respond(res);
 });
