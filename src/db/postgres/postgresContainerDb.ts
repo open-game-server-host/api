@@ -213,8 +213,8 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
         `,
             id, data.userId, CONTAINER_ALL_PERMISSION
         );
-        if (addPermissionsResult.rowCount) {
-            await client.finish();
+        if (addPermissionsResult.rowCount === 0) {
+            await client.cancel();
             throw new OGSHError("general/unspecified", `failed to give permission '${CONTAINER_ALL_PERMISSION}' to user id '${data.userId}' when creating container id '${id}'`);
         }
         await client.finish();
