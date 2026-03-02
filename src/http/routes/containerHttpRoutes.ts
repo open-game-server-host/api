@@ -21,7 +21,7 @@ interface ContainerCreateBody {
     name: string;
     regionId: string;
 }
-containerHttpRouter.post("/container", [
+containerHttpRouter.post("/", [
     body("appId").isString(),
     body("variantId").isString(),
     body("versionId").isString(),
