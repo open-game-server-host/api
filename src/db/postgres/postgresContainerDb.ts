@@ -201,7 +201,6 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
             throw new OGSHError("general/unspecified", `could not create container`);
         }
         const id = `${createContainerResult.rows[0].id}`;
-        console.log(`adding permission for container id '${id}' user id '${data.userId}' permission '${CONTAINER_ALL_PERMISSION}'`);
         const addPermissionsResult = await client.query(`
             INSERT INTO container_permissions (
                 container_id,
@@ -215,7 +214,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
             id, data.userId, CONTAINER_ALL_PERMISSION
         );
         if (addPermissionsResult.rowCount) {
-            await client.cancel();
+            await client.finish();
             throw new OGSHError("general/unspecified", `failed to give permission '${CONTAINER_ALL_PERMISSION}' to user id '${data.userId}' when creating container id '${id}'`);
         }
         await client.finish();
