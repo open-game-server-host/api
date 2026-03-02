@@ -149,7 +149,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
                 $9,
                 $10
             )
-            RETURNING id`,
+            RETURNING app_id`,
             data.appId, // 1
             data.variantId, // 2
             data.versionId, // 3
