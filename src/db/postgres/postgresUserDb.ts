@@ -30,7 +30,7 @@ export class PostgresUserDb extends PostgresDb implements Partial<Database> {
         }
         const id = userResult.rows[0].id;
         let permissionsInsert = "";
-        for (let i = USER_DEFAULT_PERMISSIONS.length; i > 0; i--) {
+        for (let i = USER_DEFAULT_PERMISSIONS.length - 1; i > 0; i--) {
             permissionsInsert += `('${id}', '${USER_DEFAULT_PERMISSIONS[i]}')`;
             if (i > 0) {
                 permissionsInsert += ","
@@ -38,7 +38,7 @@ export class PostgresUserDb extends PostgresDb implements Partial<Database> {
         }
         console.log(`permissions: '${permissionsInsert}'`);
         const permissionResult = await client.query(`
-            INSERT INTO user_permissions (user_id, permission) (
+            INSERT INTO user_permissions (
                 user_id,
                 permission
             ) VALUES
