@@ -39,8 +39,8 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
             FROM containers c
             JOIN daemons d ON d.id = c.daemon_id
             LEFT JOIN regions r ON d.region_id = r.id
-            JOIN daemon_ips ON daemon_ips.daemon_id = d.id
-            JOIN ips ON ips.id = daemon_ips.id
+            LEFT JOIN daemon_ips ON daemon_ips.daemon_id = d.id
+            LEFT JOIN ips ON ips.id = daemon_ips.id
             WHERE
                 c.id = $1
             GROUP BY c.id, d.id, r.id
@@ -275,8 +275,8 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
             FROM containers c
             JOIN daemons d ON d.id = c.daemon_id
             LEFT JOIN regions r ON d.region_id = r.id
-            JOIN daemon_ips ON daemon_ips.daemon_id = d.id
-            JOIN ips ON ips.id = daemon_ips.id
+            LEFT JOIN daemon_ips ON daemon_ips.daemon_id = d.id
+            LEFT JOIN ips ON ips.id = daemon_ips.id
             WHERE
                 auth_uid = $1
                 AND terminate_at <= NOW()
@@ -303,8 +303,8 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
             FROM containers c
             JOIN daemons d ON d.id = c.daemon_id
             LEFT JOIN regions r ON d.region_id = r.id
-            JOIN daemon_ips ON daemon_ips.daemon_id = d.id
-            JOIN ips ON ips.id = daemon_ips.id
+            LEFT JOIN daemon_ips ON daemon_ips.daemon_id = d.id
+            LEFT JOIN ips ON ips.id = daemon_ips.id
             WHERE
                 c.daemon_id = $1
                 AND (terminate_at IS NULL OR terminate_at <= NOW())

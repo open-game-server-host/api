@@ -6,45 +6,47 @@ import { PostgresDb } from "./postgresDb.js";
 
 export function convertPostgresRowToDaemon(row: any): Daemon {
     // 'ips' example formatting: {{1,192.168.0.159/32,4},{2,127.0.0.1/32,4}}
-    const aggregatedIps = (row.ips as string).substring(1, (row.ips as string).length - 1); // Remove outer { }
     const ips: Ip[] = [];
-    let reading = 0;
-    let ipId = "";
-    let ip = "";
-    let ipVersion = -1;
-    for (let i = 0; i < aggregatedIps.length; i++) {
-        const char = aggregatedIps.charAt(i);
-        if (char === "{") {
-            reading = 0;
-            continue;
-        }
-        if (char === "}") {
-            if (ipVersion !== 4 && ipVersion !== 6) {
-                throw new OGSHError("general/unspecified", `ip id '${ipId}' has an invalid version '${ipVersion}'`);
+    const aggregatedIps = (row.ips as string).substring(1, (row.ips as string).length - 1); // Remove outer { }
+    if (!aggregatedIps.includes("null")) {
+        let reading = 0;
+        let ipId = "";
+        let ip = "";
+        let ipVersion = -1;
+        for (let i = 0; i < aggregatedIps.length; i++) {
+            const char = aggregatedIps.charAt(i);
+            if (char === "{") {
+                reading = 0;
+                continue;
             }
-            ips.push({
-                id: ipId,
-                ip,
-                version: ipVersion
-            });
-        }
-        if (char === ",") {
-            reading++;
-            continue;
-        }
-        switch (reading) {
-            case 0:
-                ipId = char;
-                break;
-            case 1:
-                ip += char;
-                break;
-            case 2:
-                ipVersion = +char;
-                reading++; // This is to ignore /32 after the IP
-                break;
-        }
+            if (char === "}") {
+                if (ipVersion !== 4 && ipVersion !== 6) {
+                    throw new OGSHError("general/unspecified", `ip id '${ipId}' has an invalid version '${ipVersion}'`);
+                }
+                ips.push({
+                    id: ipId,
+                    ip,
+                    version: ipVersion
+                });
+            }
+            if (char === ",") {
+                reading++;
+                continue;
+            }
+            switch (reading) {
+                case 0:
+                    ipId = char;
+                    break;
+                case 1:
+                    ip += char;
+                    break;
+                case 2:
+                    ipVersion = +char;
+                    reading++; // This is to ignore /32 after the IP
+                    break;
+            }
 
+        }
     }
     
     return {
@@ -83,8 +85,8 @@ export class PostgresDaemonDb extends PostgresDb implements Partial<Database> {
                 array_agg(array[ips.id::text, ips.ip::text, ips.version::text]) as ips
             FROM daemons d
             LEFT JOIN regions r ON d.region_id = r.id
-            JOIN daemon_ips ON daemon_ips.daemon_id = d.id
-            JOIN ips ON ips.id = daemon_ips.id
+            LEFT JOIN daemon_ips ON daemon_ips.daemon_id = d.id
+            LEFT JOIN ips ON ips.id = daemon_ips.id
             WHERE
                 d.id = $1
             GROUP BY d.id, r.id
@@ -109,8 +111,8 @@ export class PostgresDaemonDb extends PostgresDb implements Partial<Database> {
                 array_agg(array[ips.id::text, ips.ip::text, ips.version::text]) as ips
             FROM daemons d
             LEFT JOIN regions r ON d.region_id = r.id
-            JOIN daemon_ips ON daemon_ips.daemon_id = d.id
-            JOIN ips ON ips.id = daemon_ips.id
+            LEFT JOIN daemon_ips ON daemon_ips.daemon_id = d.id
+            LEFT JOIN ips ON ips.id = daemon_ips.id
             WHERE
                 d.api_key_hash = $1
             GROUP BY d.id, r.id
@@ -194,8 +196,8 @@ export class PostgresDaemonDb extends PostgresDb implements Partial<Database> {
                 array_agg(array[ips.id::text, ips.ip::text, ips.version::text]) as ips
             FROM daemons d
             LEFT JOIN regions r ON d.region_id = r.id
-            JOIN daemon_ips ON daemon_ips.daemon_id = d.id
-            JOIN ips ON ips.id = daemon_ips.id
+            LEFT JOIN daemon_ips ON daemon_ips.daemon_id = d.id
+            LEFT JOIN ips ON ips.id = daemon_ips.id
             WHERE
                 d.region_id = $1
             GROUP BY d.id, r.id
@@ -219,8 +221,8 @@ export class PostgresDaemonDb extends PostgresDb implements Partial<Database> {
                 array_agg(array[ips.id::text, ips.ip::text, ips.version::text]) as ips
             FROM daemons d
             LEFT JOIN regions r ON d.region_id = r.id
-            JOIN daemon_ips ON daemon_ips.daemon_id = d.id
-            JOIN ips ON ips.id = daemon_ips.id
+            LEFT JOIN daemon_ips ON daemon_ips.daemon_id = d.id
+            LEFT JOIN ips ON ips.id = daemon_ips.id
             WHERE
                 d.setup_complete = FALSE
             GROUP BY d.id, r.id
