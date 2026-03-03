@@ -7,7 +7,9 @@ import { PostgresDb } from "./postgresDb.js";
 export function convertPostgresRowToDaemon(row: any): Daemon {
     // 'ips' example formatting: {{1,192.168.0.159/32,4},{2,127.0.0.1/32,4}}
     const ips: Ip[] = [];
-    const aggregatedIps = (row.ips as string).substring(1, (row.ips as string).length - 1); // Remove outer { }
+    const ipString = `${row.ips}`;
+    console.log(`ips: ${ipString}`);
+    const aggregatedIps = ipString.substring(1, ipString.length - 1); // Remove outer { }
     if (!aggregatedIps.includes("null")) {
         let reading = 0;
         let ipId = "";
