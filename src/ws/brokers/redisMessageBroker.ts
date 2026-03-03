@@ -153,7 +153,7 @@ export class RedisMessageBroker extends LocalMessageBroker {
         await this.redis.publish(this.getDaemonChannel(daemonId), JSON.stringify(msg));
     }
 
-    async registerContainer(daemonId: string, containerId: string, data: ContainerRegisterData): Promise<void> {
+    async registerContainer(daemonId: string, data: ContainerRegisterData): Promise<void> {
         const msg: DaemonWsMessage = {
             route: "container",
             action: "register",

@@ -1,17 +1,36 @@
-import { Daemon, OGSHError, UpdateDaemonData } from "@open-game-server-host/backend-lib";
+import { Daemon, Ip, OGSHError, UpdateDaemonData } from "@open-game-server-host/backend-lib";
 import { generateDaemonApiKey } from "../../daemon/daemon.js";
 import { SetupDaemonData, SetupIncompleteDaemon } from "../../interfaces/daemon.js";
 import { Database } from "../db.js";
 import { PostgresDb } from "./postgresDb.js";
 
 export class PostgresDaemonDb extends PostgresDb implements Partial<Database> {
-    private convertRowToDaemon(row: any): Daemon {
+    async convertRowToDaemon(row: any): Promise<Daemon> {
+        const ipsResult = await this.query(`
+            SELECT ips.*
+            FROM daemon_ips
+            JOIN ips ON ips.id = daemon_ips.ip_id
+            WHERE daemon_id = $1
+        `,
+            row.id
+        );
+        const ips: Ip[] = [];
+        ipsResult.rows.forEach(row => {
+            ips.push({
+                id: `${row.id}`,
+                ip: row.ip,
+                version: row.version
+            });
+        });
+        
         return {
             apiKeyHash: row.api_key_hash,
             cpuArch: row.cpu_arch,
             cpuName: row.cpu_name,
             createdAt: +row.created_at,
+            enabled: row.enabled,
             id: `${row.id}`,
+            ips,
             os: row.os,
             region: {
                 countryCode: row.country_code,
@@ -22,14 +41,7 @@ export class PostgresDaemonDb extends PostgresDb implements Partial<Database> {
             segmentsUsable: row.segments_usable,
             segmentsAvailable: row.segments_available,
             setupComplete: row.setup_complete,
-            ipv4: row.ipv4_id ? {
-                id: `${row.ipv4_id}`,
-                ip: row.ipv4_ip
-            } : undefined,
-            ipv6: row.ipv6_id ? {
-                id: `${row.ipv6_id}`,
-                ip: row.ipv6_ip
-            } : undefined,
+            
             portRangeEnd: row.port_range_end,
             portRangeStart: row.port_range_start,
             segmentsMax: row.segmentsMax
@@ -40,48 +52,44 @@ export class PostgresDaemonDb extends PostgresDb implements Partial<Database> {
         const result = await this.query(`
             SELECT 
                 d.*,
-                v4.ip as ipv4_ip,
-                v6.ip as ipv6_ip,
                 r.name as region_name,
                 r.country_code,
                 r.price_multiplier
             FROM daemons d
-            LEFT JOIN ipv4 v4 ON d.ipv4_id = v4.id
-            LEFT JOIN ipv6 v6 ON d.ipv6_id = v6.id
             LEFT JOIN regions r ON d.region_id = r.id
             WHERE
                 d.id = $1
-            LIMIT 1`,
-            daemonId);
+            LIMIT 1
+        `,
+            daemonId
+        );
         if (result.rowCount === 0) {
             throw new OGSHError("general/unspecified", `daemon id '${daemonId}' not found`);
         }
         const row = result.rows[0];
-        return this.convertRowToDaemon(row);
+        return await this.convertRowToDaemon(row);
     }
 
     async getDaemonByApiKeyHash(apiKeyHash: string): Promise<Daemon | SetupIncompleteDaemon> {
         const result = await this.query(`
             SELECT 
                 d.*,
-                v4.ip as ipv4_ip,
-                v6.ip as ipv6_ip,
                 r.name as region_name,
                 r.country_code,
                 r.price_multiplier
             FROM daemons d
-            LEFT JOIN ipv4 v4 ON d.ipv4_id = v4.id
-            LEFT JOIN ipv6 v6 ON d.ipv6_id = v6.id
             LEFT JOIN regions r ON d.region_id = r.id
             WHERE
                 d.api_key_hash = $1
-            LIMIT 1`,
-            apiKeyHash);
+            LIMIT 1
+        `,
+            apiKeyHash
+        );
         if (result.rowCount === 0) {
             throw new OGSHError("general/unspecified", `daemon not found by hash`);
         }
         const row = result.rows[0];
-        return this.convertRowToDaemon(row);
+        return await this.convertRowToDaemon(row);
     }
 
     async createDaemon(): Promise<string> {
@@ -147,23 +155,20 @@ export class PostgresDaemonDb extends PostgresDb implements Partial<Database> {
         const result = await this.query(`
             SELECT 
                 d.*,
-                v4.ip as ipv4_ip,
-                v6.ip as ipv6_ip,
                 r.name as region_name,
                 r.country_code,
                 r.price_multiplier
             FROM daemons d
-            LEFT JOIN ipv4 v4 ON d.ipv4_id = v4.id
-            LEFT JOIN ipv6 v6 ON d.ipv6_id = v6.id
             LEFT JOIN regions r ON d.region_id = r.id
             WHERE
                 d.region_id = $1
-            LIMIT 1`,
-            regionId);
+        `,
+            regionId
+        );
         const daemons: Daemon[] = [];
-        result.rows.forEach(row => {
-            daemons.push(this.convertRowToDaemon(row));
-        });
+        for (const row of result.rows) {
+            daemons.push(await this.convertRowToDaemon(row));
+        }
         return daemons;
     }
 
@@ -171,22 +176,18 @@ export class PostgresDaemonDb extends PostgresDb implements Partial<Database> {
         const result = await this.query(`
             SELECT 
                 d.*,
-                v4.ip as ipv4_ip,
-                v6.ip as ipv6_ip,
                 r.name as region_name,
                 r.country_code,
                 r.price_multiplier
             FROM daemons d
-            LEFT JOIN ipv4 v4 ON d.ipv4_id = v4.id
-            LEFT JOIN ipv6 v6 ON d.ipv6_id = v6.id
             LEFT JOIN regions r ON d.region_id = r.id
             WHERE
                 d.setup_complete = FALSE
-            LIMIT 1`);
+            `);
         const daemons: Daemon[] = [];
-        result.rows.forEach(row => {
-            daemons.push(this.convertRowToDaemon(row));
-        });
+        for (const row of result.rows) {
+            daemons.push(await this.convertRowToDaemon(row));
+        }
         return daemons;
     }
 }

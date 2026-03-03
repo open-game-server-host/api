@@ -11,8 +11,8 @@ export interface DaemonLocalDbFile {
     setupComplete: boolean;
     cpuArch?: string;
     cpuName?: string;
-    ipv4Id?: string;
-    ipv6Id?: string;
+    enabled: boolean;
+    ip_ids?: string[];
     os?: string;
     portRangeStart?: number;
     portRangeEnd?: number;
@@ -33,9 +33,9 @@ export class LocalDaemonDb extends LocalDb implements Partial<Database> {
             cpuArch: raw.cpuArch!,
             cpuName: raw.cpuName!,
             createdAt: raw.createdAt,
+            enabled: raw.enabled,
             id,
-            ipv4: raw.ipv4Id ? await DATABASE.getIpv4(raw.ipv4Id) : undefined,
-            ipv6: raw.ipv6Id ? await DATABASE.getIpv6(raw.ipv6Id) : undefined,
+            ips: await Promise.all((raw.ip_ids || []).map(async id => await DATABASE.getIp(id))),
             os: raw.os!,
             portRangeStart: raw.portRangeStart,
             portRangeEnd: raw.portRangeEnd,
@@ -73,7 +73,8 @@ export class LocalDaemonDb extends LocalDb implements Partial<Database> {
             id,
             apiKeyHash: key.hash,
             createdAt: Date.now(),
-            setupComplete: false
+            setupComplete: false,
+            enabled: false
         }
         this.writeJsonFile<DaemonLocalDbFile>("daemon", id, data);
         return key.apiKey;

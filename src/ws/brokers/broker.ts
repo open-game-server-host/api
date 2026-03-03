@@ -28,7 +28,7 @@ export interface Broker {
     killContainer(daemonId: string, containerId: string): Promise<void>;
     sendCommandToContainer(daemonId: string, containerId: string, command: string): Promise<void>;
     installContainer(daemonId: string, containerId: string, data: ContainerAppData): Promise<void>;
-    registerContainer(daemonId: string, containerId: string, data: ContainerRegisterData): Promise<void>;
+    registerContainer(daemonId: string, data: ContainerRegisterData): Promise<void>;
     removeContainer(daemonId: string, containerId: string): Promise<void>;
 }
 
