@@ -43,7 +43,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
             JOIN ips ON ips.id = daemon_ips.id
             WHERE
                 c.id = $1
-            GROUP BY c.id
+            GROUP BY c.id, d.id, r.id
             LIMIT 1
         `,
             containerId
@@ -280,7 +280,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
             WHERE
                 auth_uid = $1
                 AND terminate_at <= NOW()
-            GROUP BY c.id
+            GROUP BY c.id, d.id, r.id
         `,
             authUid
         );
@@ -308,7 +308,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
             WHERE
                 c.daemon_id = $1
                 AND (terminate_at IS NULL OR terminate_at <= NOW())
-            GROUP BY c.id
+            GROUP BY c.id, d.id, r.id
         `,
             daemonId
         );
