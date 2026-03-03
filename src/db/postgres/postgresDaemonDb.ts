@@ -87,7 +87,7 @@ export class PostgresDaemonDb extends PostgresDb implements Partial<Database> {
             JOIN ips ON ips.id = daemon_ips.id
             WHERE
                 d.id = $1
-            GROUP BY d.id
+            GROUP BY d.id, r.id
             LIMIT 1
         `,
             daemonId
@@ -113,7 +113,7 @@ export class PostgresDaemonDb extends PostgresDb implements Partial<Database> {
             JOIN ips ON ips.id = daemon_ips.id
             WHERE
                 d.api_key_hash = $1
-            GROUP BY d.id
+            GROUP BY d.id, r.id
             LIMIT 1
         `,
             apiKeyHash
@@ -198,7 +198,7 @@ export class PostgresDaemonDb extends PostgresDb implements Partial<Database> {
             JOIN ips ON ips.id = daemon_ips.id
             WHERE
                 d.region_id = $1
-            GROUP BY d.id
+            GROUP BY d.id, r.id
         `,
             regionId
         );
@@ -223,7 +223,7 @@ export class PostgresDaemonDb extends PostgresDb implements Partial<Database> {
             JOIN ips ON ips.id = daemon_ips.id
             WHERE
                 d.setup_complete = FALSE
-            GROUP BY d.id
+            GROUP BY d.id, r.id
             `);
         const daemons: Daemon[] = [];
         result.rows.forEach(row => {
