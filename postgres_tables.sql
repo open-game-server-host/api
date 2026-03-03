@@ -5,7 +5,7 @@ CREATE TABLE users (
 );
 
 CREATE TABLE user_permissions (
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     permission TEXT NOT NULL,
 
     UNIQUE (user_id, permission)
@@ -30,8 +30,8 @@ CREATE TABLE daemons (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     cpu_arch VARCHAR(10) DEFAULT NULL,
     cpu_name TEXT DEFAULT NULL,
-    port_range_start INTEGER DEFAULT 0,
-    port_range_end INTEGER DEFAULT 0,
+    port_range_start INTEGER DEFAULT 1024,
+    port_range_end INTEGER DEFAULT 65535,
     os VARCHAR(10) DEFAULT NULL,
     region_id INTEGER DEFAULT NULL REFERENCES regions(id) ON DELETE RESTRICT,
     segments_usable INTEGER DEFAULT 0,
@@ -40,7 +40,7 @@ CREATE TABLE daemons (
     setup_complete BOOLEAN DEFAULT FALSE,
 
     CHECK (port_range_start <= port_range_end),
-    CHECK (port_range_start > 1024),
+    CHECK (port_range_start >= 1024),
     CHECK (port_range_end <= 65535)
 );
 
