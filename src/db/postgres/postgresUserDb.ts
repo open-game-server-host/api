@@ -1,5 +1,5 @@
 import { OGSHError, User } from "@open-game-server-host/backend-lib";
-import { USER_ALL_PERMISSION, UserPermission } from "../../interfaces/user.js";
+import { USER_ALL_PERMISSION, USER_DEFAULT_PERMISSIONS, UserPermission } from "../../interfaces/user.js";
 import { Database } from "../db.js";
 import { PostgresDb } from "./postgresDb.js";
 
@@ -22,10 +22,19 @@ export class PostgresUserDb extends PostgresDb implements Partial<Database> {
     }
 
     async createUser(authUid: string): Promise<User> {
-        const result = await this.query("INSERT INTO users (auth_uid) VALUES ($1)", authUid);
-        if (result.rowCount === 0) {
+        const client = await this.startTransaction();
+        const userResult = await client.query("INSERT INTO users (auth_uid) VALUES ($1) RETURNING id", authUid);
+        if (userResult.rowCount === 0) {
+            await client.cancel();
             throw new OGSHError("general/unspecified", `authUid '${authUid}' already exists`);
         }
+        const id = userResult.rows[0].id;
+        const permissionResult = await client.query("INSERT INTO user_permissions (user_id, permission) VALUES ($1, $2)", id, USER_DEFAULT_PERMISSIONS);
+        if (permissionResult.rowCount === 0) {
+            await client.cancel();
+            throw new OGSHError("general/unspecified", `failed to add auth uid '${authUid}' default permissions`);
+        }
+        await client.finish();
         return this.getUser(authUid);
     }
 
