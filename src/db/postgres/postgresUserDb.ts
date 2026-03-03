@@ -30,7 +30,7 @@ export class PostgresUserDb extends PostgresDb implements Partial<Database> {
         }
         const id = userResult.rows[0].id;
         let permissions = "";
-        for (let i = USER_DEFAULT_PERMISSIONS.length; i > 0; i++) {
+        for (let i = USER_DEFAULT_PERMISSIONS.length; i > 0; i--) {
             permissions += `('${id}', '${USER_DEFAULT_PERMISSIONS[i]}')`;
             if (i > 0) {
                 permissions += ","
