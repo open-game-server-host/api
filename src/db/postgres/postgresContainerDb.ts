@@ -1,21 +1,42 @@
-import { Container, Daemon, getVariant, getVersion, OGSHError, sanitiseDaemon } from "@open-game-server-host/backend-lib";
+import { Container, ContainerPort, getVariant, getVersion, OGSHError, sanitiseDaemon } from "@open-game-server-host/backend-lib";
 import { QueryResult } from "pg";
 import { segmentReserveMethod, SegmentReserveMethod } from "../../daemon/daemon.js";
 import { CONTAINER_ALL_PERMISSION, ContainerPermission, CreateContainerData } from "../../interfaces/container.js";
-import { Database } from "../db.js";
-import { convertPostgresRowToDaemon } from "./postgresDaemonDb.js";
+import { DATABASE, Database } from "../db.js";
 import { PostgresClient, PostgresDb } from "./postgresDb.js";
 
 export class PostgresContainerDb extends PostgresDb implements Partial<Database> {
-    private convertRowToContainer(row: any): Container {
+    private async convertRowToContainer(row: any): Promise<Container> {
+        const portsResult = await this.query(`
+            SELECT
+                ip_id,
+                host_port,
+                container_port
+            FROM container_ports
+            WHERE container_id = $1
+        `,
+            row.id
+        );
+        const ports: {[id: string]: ContainerPort[]} = {};
+        portsResult.rows.forEach(row => {
+            const ipId = row.ip_id;
+            if (!ports[ipId]) {
+                ports[ipId] = [];
+            }
+            ports[ipId].push({
+                containerPort: row.container_port,
+                hostPort: row.host_port
+            });
+        });
+
         return {
             appId: row.app_id,
             contractLengthDays: row.contract_length_days,
             createdAt: +row.created_at,
-            daemon: sanitiseDaemon(convertPostgresRowToDaemon(row)),
+            daemon: sanitiseDaemon(await DATABASE.getDaemon(row.daemon_id)),
             free: row.free,
             id: `${row.id}`,
-            ports: [], // TODO
+            ports,
             locked: row.locked,
             name: row.name,
             runtime: row.runtime,
@@ -28,30 +49,20 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
     }
 
     async getContainer(containerId: string): Promise<Container> {
-        const result = await this.query(`
-            SELECT
-                c.*,
-                d.*,
-                r.name as region_name,
-                r.country_code,
-                r.price_multiplier,
-                array_agg(array[ips.id::text, ips.ip::text, ips.version::text]) as ips
-            FROM containers c
-            JOIN daemons d ON d.id = c.daemon_id
-            LEFT JOIN regions r ON d.region_id = r.id
-            LEFT JOIN daemon_ips ON daemon_ips.daemon_id = d.id
-            LEFT JOIN ips ON ips.id = daemon_ips.id
+        const containerResult = await this.query(`
+            SELECT *
+            FROM containers
             WHERE
-                c.id = $1
-            GROUP BY c.id, d.id, r.id
+                id = $1
             LIMIT 1
         `,
             containerId
         );
-        if (result.rowCount === 0) {
+        if (containerResult.rowCount === 0) {
             throw new OGSHError("general/unspecified", `container id '${containerId}' not found`);
         }
-        const row = result.rows[0];
+
+        const row = containerResult.rows[0];
         return this.convertRowToContainer(row);
     }
 
@@ -87,7 +98,11 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
         return true;
     }
 
-    private async reserveSegments(client: PostgresClient, reserveMethod: SegmentReserveMethod, regionId: string, segments: number): Promise<Daemon> {
+    private async reserveSegments(client: PostgresClient, reserveMethod: SegmentReserveMethod, regionId: string, segments: number): Promise<{
+        id: string,
+        portRangeStart?: number,
+        portRangeEnd?: number
+    }> {
         let result: Promise<QueryResult>;
         switch (reserveMethod) {
             case "fifo":
@@ -101,7 +116,10 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
                             AND segments_available >= $1
                         LIMIT 1
                     )
-                    RETURNING *
+                    RETURNING
+                        id,
+                        port_range_start,
+                        port_range_end
                 `,
                     segments,
                     regionId
@@ -119,7 +137,10 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
                         ORDER BY segments_available DESC
                         LIMIT 1
                     )
-                    RETURNING *
+                    RETURNING
+                        id,
+                        port_range_start,
+                        port_range_end
                 `,
                     segments,
                     regionId
@@ -130,7 +151,12 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
         if ((await result).rowCount === 0) {
             throw new OGSHError("general/unspecified", `no availability left in region '${regionId}'`);
         }
-        return convertPostgresRowToDaemon((await result).rows[0]);
+        const row = (await result).rows[0];
+        return {
+            id: row.id,
+            portRangeStart: row.port_range_start,
+            portRangeEnd: row.port_range_end
+        }
     }
 
     async createContainer(data: CreateContainerData): Promise<Container> {
@@ -139,7 +165,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
             throw new OGSHError("app/version-not-found", `cannot create container with app id '${data.appId}' variant id '${data.variantId}' version id '${data.versionId}'`);
         }
         const client = await this.startTransaction();
-        const daemon = await this.reserveSegments(client, segmentReserveMethod, data.regionId, data.segments);
+        const assignedDaemon = await this.reserveSegments(client, segmentReserveMethod, data.regionId, data.segments);
         const createContainerResult = await client.query(`
             INSERT INTO containers (
                 app_id,
@@ -173,7 +199,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
             version.defaultRuntime, // 6
             data.segments, // 7
             data.userId, // 8
-            daemon.id // 9
+            assignedDaemon.id // 9
         );
         if (createContainerResult.rowCount === 0) {
             await client.cancel();
@@ -197,7 +223,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
             throw new OGSHError("general/unspecified", `failed to give permission '${CONTAINER_ALL_PERMISSION}' to user id '${data.userId}' when creating container id '${containerId}'`);
         }
 
-        if (daemon.portRangeStart && daemon.portRangeEnd) {
+        if (assignedDaemon.portRangeStart && assignedDaemon.portRangeEnd) {
             const variant = await getVariant(data.appId, data.variantId);
             if (!variant) {
                 await client.cancel();
@@ -210,7 +236,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
                         rec RECORD;
                     BEGIN
                         FOR rec IN
-                            SELECT ip_id FROM daemon_ips WHERE daemon_id = '${daemon.id}'
+                            SELECT ip_id FROM daemon_ips WHERE daemon_id = '${assignedDaemon.id}'
                         LOOP
                             INSERT INTO container_ports (
                                 ip_id,
@@ -224,7 +250,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
                                 '${containerPort}',
                                 (
                                     SELECT port
-                                    FROM generate_series(${daemon.portRangeStart}, ${daemon.portRangeEnd}) AS port
+                                    FROM generate_series(${assignedDaemon.portRangeStart}, ${assignedDaemon.portRangeEnd}) AS port
                                     WHERE port NOT IN (
                                         SELECT host_port
                                         FROM container_ports
@@ -241,7 +267,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
                 `);
                 if (assignPortsResult.rowCount === 0) {
                     await client.cancel();
-                    throw new OGSHError("general/unspecified", `failed to assign unique ports, range start '${daemon.portRangeStart}' range end '${daemon.portRangeEnd}'`);
+                    throw new OGSHError("general/unspecified", `failed to assign unique ports, range start '${assignedDaemon.portRangeStart}' range end '${assignedDaemon.portRangeEnd}'`);
                 }
             }
         }
@@ -273,57 +299,37 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
 
     async listActiveContainersByUser(authUid: string): Promise<Container[]> {
         const result = await this.query(`
-            SELECT
-                c.*,
-                d.*,
-                r.name as region_name,
-                r.country_code,
-                r.price_multiplier,
-                array_agg(array[ips.id::text, ips.ip::text, ips.version::text]) as ips
+            SELECT c.*
             FROM containers c
-            JOIN daemons d ON d.id = c.daemon_id
-            LEFT JOIN regions r ON d.region_id = r.id
-            LEFT JOIN daemon_ips ON daemon_ips.daemon_id = d.id
-            LEFT JOIN ips ON ips.id = daemon_ips.id
+            JOIN users u ON u.id = c.user_id
             WHERE
-                auth_uid = $1
-                AND terminate_at <= NOW()
-            GROUP BY c.id, d.id, r.id
+                u.auth_uid = $1
+                AND (terminate_at IS NULL OR terminate_at <= NOW())
         `,
             authUid
         );
         const containers: Container[] = [];
-        result.rows.forEach(row => {
-            containers.push(this.convertRowToContainer(row));
-        });
+        for (const row of result.rows) {
+            containers.push(await this.convertRowToContainer(row));
+        }
         return containers;
     }
 
     async listActiveContainersByDaemon(daemonId: string): Promise<Container[]> {
         const result = await this.query(`
-            SELECT
-                c.*,
-                d.*,
-                r.name as region_name,
-                r.country_code,
-                r.price_multiplier,
-                array_agg(array[ips.id::text, ips.ip::text, ips.version::text]) as ips
+            SELECT c.*
             FROM containers c
             JOIN daemons d ON d.id = c.daemon_id
-            LEFT JOIN regions r ON d.region_id = r.id
-            LEFT JOIN daemon_ips ON daemon_ips.daemon_id = d.id
-            LEFT JOIN ips ON ips.id = daemon_ips.id
             WHERE
                 c.daemon_id = $1
                 AND (terminate_at IS NULL OR terminate_at <= NOW())
-            GROUP BY c.id, d.id, r.id
         `,
             daemonId
         );
         const containers: Container[] = [];
-        result.rows.forEach(row => {
-            containers.push(this.convertRowToContainer(row));
-        });
+        for (const row of result.rows) {
+            containers.push(await this.convertRowToContainer(row));
+        }
         return containers;
     }
 }
