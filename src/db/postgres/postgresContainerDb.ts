@@ -1,4 +1,4 @@
-import { Container, ContainerPort, getVariant, getVersion, OGSHError, sanitiseDaemon } from "@open-game-server-host/backend-lib";
+import { Container, ContainerPortsData, getVariant, getVersion, OGSHError, sanitiseDaemon } from "@open-game-server-host/backend-lib";
 import { QueryResult } from "pg";
 import { segmentReserveMethod, SegmentReserveMethod } from "../../daemon/daemon.js";
 import { CONTAINER_ALL_PERMISSION, ContainerPermission, CreateContainerData } from "../../interfaces/container.js";
@@ -9,21 +9,25 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
     private async convertRowToContainer(row: any): Promise<Container> {
         const portsResult = await this.query(`
             SELECT
-                ip_id,
-                host_port,
-                container_port
+                c.host_port,
+                c.container_port,
+                ips.ip,
+                ips.version
             FROM container_ports
+            JOIN ips ON c.ip_id = ips.id
             WHERE container_id = $1
         `,
             row.id
         );
-        const ports: {[id: string]: ContainerPort[]} = {};
+        const ports: ContainerPortsData = {};
         portsResult.rows.forEach(row => {
-            const ipId = row.ip_id;
-            if (!ports[ipId]) {
-                ports[ipId] = [];
+            if (!ports[row.ip]) {
+                ports[row.ip] = {
+                    ports: [],
+                    version: row.version
+                };
             }
-            ports[ipId].push({
+            ports[row.ip].ports.push({
                 containerPort: row.container_port,
                 hostPort: row.host_port
             });

@@ -15,7 +15,7 @@ export async function createContainer(userId: string, regionId: string, appId: s
         userId: userId
     });
 
-    await BROKER.registerContainer(container.daemon.id, container.id, {
+    await BROKER.registerContainer(container.daemon.id, {
         containerId: container.id,
         appId,
         variantId,

@@ -121,7 +121,7 @@ export class LocalMessageBroker implements Broker {
         }));
     }
 
-    async registerContainer(daemonId: string, containerId: string, data: ContainerRegisterData): Promise<void> {
+    async registerContainer(daemonId: string, data: ContainerRegisterData): Promise<void> {
         this.getDaemonWebsocket(daemonId).send(JSON.stringify({
             route: "container",
             action: "register",

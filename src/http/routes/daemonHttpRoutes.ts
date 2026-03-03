@@ -25,7 +25,7 @@ daemonHttpRouter.post("/setup/:daemonId", async (req: BodyRequest<SetupDaemonDat
 
 daemonHttpRouter.post("/update", daemonAuthMiddleware, async (req: BodyRequest<UpdateDaemonData>, res: DaemonResponse) => {
     await DATABASE.updateDaemon(res.locals.daemon.id, req.body);
-    respond(res);
+    respond(res, await DATABASE.getDaemon(res.locals.daemon.id));
 });
 
 daemonHttpRouter.get("/", daemonAuthMiddleware, async (req, res) => {
