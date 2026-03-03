@@ -1,4 +1,4 @@
-import { Container, ContainerPortsData, getVariant, getVersion, OGSHError, sanitiseDaemon } from "@open-game-server-host/backend-lib";
+import { Container, ContainerPorts, getVariant, getVersion, OGSHError, sanitiseDaemon } from "@open-game-server-host/backend-lib";
 import { QueryResult } from "pg";
 import { segmentReserveMethod, SegmentReserveMethod } from "../../daemon/daemon.js";
 import { CONTAINER_ALL_PERMISSION, ContainerPermission, CreateContainerData } from "../../interfaces/container.js";
@@ -18,7 +18,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
         `,
             row.id
         );
-        const ports: ContainerPortsData = {};
+        const ports: ContainerPorts = {};
         portsResult.rows.forEach(row => {
             if (!ports[row.version]) {
                 ports[row.version] = [];

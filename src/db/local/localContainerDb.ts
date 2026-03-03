@@ -1,4 +1,4 @@
-import { Container, ContainerPort, ContainerPortsData, Daemon, getVariant, getVersion, OGSHError, sanitiseDaemon } from "@open-game-server-host/backend-lib";
+import { Container, ContainerPort, ContainerPorts, ContainerPortsData, Daemon, getVariant, getVersion, OGSHError, sanitiseDaemon } from "@open-game-server-host/backend-lib";
 import { isContainerTerminated } from "../../container/container.js";
 import { segmentReserveMethod, SegmentReserveMethod } from "../../daemon/daemon.js";
 import { CONTAINER_ALL_PERMISSION, ContainerPermission, CreateContainerData } from "../../interfaces/container.js";
@@ -15,7 +15,7 @@ export interface ContainerLocalDbFile {
     free: boolean;
     locked: boolean;
     name: string;
-    ports: ContainerPortsData;
+    ports: ContainerPorts;
     runtime: string;
     segments: number;
     terminateAt?: number;
@@ -144,7 +144,7 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
         const daemon = await this.reserveSegments(data.regionId, segmentReserveMethod, data.segments);
 
         const variant = await getVariant(data.appId, data.variantId);
-        const ports: ContainerPortsData = {};
+        const ports: ContainerPorts = {};
 
         if (daemon.portRangeStart && daemon.portRangeEnd) {
             function assignPorts(rangeStart: number, rangeEnd: number, portsInUse: number[]): ContainerPort[] {
