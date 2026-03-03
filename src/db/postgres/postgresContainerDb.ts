@@ -200,6 +200,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
         if (daemon.portRangeStart && daemon.portRangeEnd) {
             const variant = await getVariant(data.appId, data.variantId);
             if (!variant) {
+                await client.cancel();
                 throw new OGSHError("app/variant-not-found", `cannot create container with app id '${data.appId}' variant id '${data.variantId}'`);
             }
             for (const port of Object.keys(variant.ports)) {
@@ -234,6 +235,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
                     daemon.portRangeEnd
                 );
                 if (assignPortsResult.rowCount === 0) {
+                    await client.cancel();
                     throw new OGSHError("general/unspecified", `failed to assign unique port, range start '${daemon.portRangeStart}' range end '${daemon.portRangeEnd}'`);
                 }
             }
