@@ -204,14 +204,13 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
                 throw new OGSHError("app/variant-not-found", `cannot create container with app id '${data.appId}' variant id '${data.variantId}'`);
             }
             for (const containerPort of Object.keys(variant.ports)) {
-                console.log(`assigning ports to ip '${containerId}' for container port '${containerPort}' in range ${daemon.portRangeStart} to ${daemon.portRangeEnd}`);
                 const assignPortsResult = await client.query(`
                     DO $$
                     DECLARE
                         rec RECORD;
                     BEGIN
                         FOR rec IN
-                            SELECT ip_id FROM daemon_ips WHERE daemon_id = $1
+                            SELECT ip_id FROM daemon_ips WHERE daemon_id = '${daemon.id}'
                         LOOP
                             INSERT INTO container_ports (
                                 ip_id,
@@ -221,16 +220,16 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
                             )
                             VALUES (
                                 rec.ip_id,
-                                $2,
-                                $3,
+                                '${containerId}',
+                                '${containerPort}',
                                 (
                                     SELECT port
-                                    FROM generate_series($4, $5) AS port
+                                    FROM generate_series(${daemon.portRangeStart}, ${daemon.portRangeEnd}) AS port
                                     WHERE port NOT IN (
                                         SELECT host_port
                                         FROM container_ports
                                         WHERE
-                                            container_id = $1
+                                            container_id = '${containerId}'
                                     )
                                     ORDER BY random()
                                     LIMIT 1
@@ -239,13 +238,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
                         END LOOP;
                     END;
                     $$;
-                `,
-                    daemon.id,
-                    containerId,
-                    containerPort,
-                    daemon.portRangeStart,
-                    daemon.portRangeEnd
-                );
+                `);
                 if (assignPortsResult.rowCount === 0) {
                     await client.cancel();
                     throw new OGSHError("general/unspecified", `failed to assign unique ports, range start '${daemon.portRangeStart}' range end '${daemon.portRangeEnd}'`);
