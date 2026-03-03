@@ -179,7 +179,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
             await client.cancel();
             throw new OGSHError("general/unspecified", `could not create container`);
         }
-        const id = `${createContainerResult.rows[0].id}`;
+        const containerId = `${createContainerResult.rows[0].id}`;
         const addPermissionsResult = await client.query(`
             INSERT INTO container_permissions (
                 container_id,
@@ -190,11 +190,11 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
                 $1, $2, $3
             )
         `,
-            id, data.userId, CONTAINER_ALL_PERMISSION
+            containerId, data.userId, CONTAINER_ALL_PERMISSION
         );
         if (addPermissionsResult.rowCount === 0) {
             await client.cancel();
-            throw new OGSHError("general/unspecified", `failed to give permission '${CONTAINER_ALL_PERMISSION}' to user id '${data.userId}' when creating container id '${id}'`);
+            throw new OGSHError("general/unspecified", `failed to give permission '${CONTAINER_ALL_PERMISSION}' to user id '${data.userId}' when creating container id '${containerId}'`);
         }
 
         if (daemon.portRangeStart && daemon.portRangeEnd) {
@@ -203,45 +203,57 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
                 await client.cancel();
                 throw new OGSHError("app/variant-not-found", `cannot create container with app id '${data.appId}' variant id '${data.variantId}'`);
             }
-            for (const port of Object.keys(variant.ports)) {
-                console.log(`assigning ports to ip '${id}' for container port '${port}' in range ${daemon.portRangeStart} to ${daemon.portRangeEnd}`);
+            for (const containerPort of Object.keys(variant.ports)) {
+                console.log(`assigning ports to ip '${containerId}' for container port '${containerPort}' in range ${daemon.portRangeStart} to ${daemon.portRangeEnd}`);
                 const assignPortsResult = await client.query(`
-                    INSERT INTO container_ports (
-                        ip_id,
-                        container_id,
-                        container_port,
-                        host_port
-                    )
-                    VALUES (
-                        $1,
-                        $2,
-                        (
-                            SELECT port
-                            FROM generate_series($3, $4) AS port
-                            WHERE port NOT IN (
-                                SELECT host_port
-                                FROM container_ports
-                                WHERE
-                                    container_id = $1
+                    DO $$
+                    DECLARE
+                        rec RECORD;
+                    BEGIN
+                        FOR rec IN
+                            SELECT ip_id FROM daemon_ips WHERE daemon_id = $1
+                        LOOP
+                            INSERT INTO container_ports (
+                                ip_id,
+                                container_id,
+                                container_port,
+                                host_port
                             )
-                            ORDER BY random()
-                            LIMIT 1
-                        )
-                    )
+                            VALUES (
+                                rec.ip_id,
+                                $2,
+                                $3,
+                                (
+                                    SELECT port
+                                    FROM generate_series($4, $5) AS port
+                                    WHERE port NOT IN (
+                                        SELECT host_port
+                                        FROM container_ports
+                                        WHERE
+                                            container_id = $1
+                                    )
+                                    ORDER BY random()
+                                    LIMIT 1
+                                )
+                            );
+                        END LOOP;
+                    END;
+                    $$;
                 `,
-                    id,
-                    port,
+                    daemon.id,
+                    containerId,
+                    containerPort,
                     daemon.portRangeStart,
                     daemon.portRangeEnd
                 );
                 if (assignPortsResult.rowCount === 0) {
                     await client.cancel();
-                    throw new OGSHError("general/unspecified", `failed to assign unique port, range start '${daemon.portRangeStart}' range end '${daemon.portRangeEnd}'`);
+                    throw new OGSHError("general/unspecified", `failed to assign unique ports, range start '${daemon.portRangeStart}' range end '${daemon.portRangeEnd}'`);
                 }
             }
         }
         await client.finish();
-        return this.getContainer(id);
+        return this.getContainer(containerId);
     }
 
     async terminateContainer(containerId: string, terminateAt: Date): Promise<void> {
