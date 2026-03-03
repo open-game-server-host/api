@@ -10,7 +10,7 @@ export function convertPostgresRowToDaemon(row: any): Daemon {
     const ipString = `${row.ips}`;
     console.log(`ips: ${ipString}`);
     const aggregatedIps = ipString.substring(1, ipString.length - 1); // Remove outer { }
-    if (!aggregatedIps.includes("null")) {
+    if (!aggregatedIps.includes("null") && !aggregatedIps.includes("undefined")) {
         let reading = 0;
         let ipId = "";
         let ip = "";
