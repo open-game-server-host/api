@@ -11,14 +11,10 @@ CREATE TABLE user_permissions (
     UNIQUE (user_id, permission)
 );
 
-CREATE TABLE ipv4 (
+CREATE TABLE ips (
     id SERIAL PRIMARY KEY,
-    ip INET
-);
-
-CREATE TABLE ipv6 (
-    id SERIAL PRIMARY KEY,
-    ip INET
+    ip INET UNIQUE,
+    version SMALLINT
 );
 
 CREATE TABLE regions (
@@ -34,8 +30,6 @@ CREATE TABLE daemons (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     cpu_arch VARCHAR(10) DEFAULT NULL,
     cpu_name TEXT DEFAULT NULL,
-    ipv4_id INTEGER DEFAULT NULL REFERENCES ipv4(id) ON DELETE RESTRICT,
-    ipv6_id INTEGER DEFAULT NULL REFERENCES ipv6(id) ON DELETE RESTRICT,
     port_range_start INTEGER DEFAULT 0,
     port_range_end INTEGER DEFAULT 0,
     os VARCHAR(10) DEFAULT NULL,
@@ -45,9 +39,16 @@ CREATE TABLE daemons (
     segments_max INTEGER DEFAULT 0,
     setup_complete BOOLEAN DEFAULT FALSE,
 
-    CHECK (ipv4_port_range_start <= ipv4_port_range_end),
-    CHECK (ipv6_port_range_start <= ipv6_port_range_end)
+    CHECK (port_range_start <= port_range_end),
+    CHECK (port_range_start > 1024),
+    CHECK (port_range_end <= 65535)
 );
+
+CREATE TABLE daemon_ips (
+    id SERIAL PRIMARY KEY,
+    daemon_id INTEGER NOT NULL REFERENCES daemons(id) ON DELETE CASCADE,
+    ip_id INTEGER NOT NULL REFERENCES ips(id) ON DELETE RESTRICT
+)
 
 CREATE TABLE containers (
     app_id VARCHAR(30),
@@ -73,20 +74,22 @@ CREATE TABLE users_containers (
     UNIQUE (user_id, container_id)
 );
 
-CREATE TABLE container_ports (
-    container_id INTEGER NOT NULL REFERENCES containers(id) ON DELETE CASCADE,
-    host_port INTEGER NOT NULL,
-    container_port INTEGER NOT NULL,
-
-    UNIQUE (container_id, host_port)
-);
-
 CREATE TABLE container_permissions (
     container_id INTEGER NOT NULL REFERENCES containers(id) ON DELETE CASCADE,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     permission TEXT NOT NULL,
 
     UNIQUE (container_id, user_id, permission)
+);
+
+CREATE TABLE container_ports (
+    id SERIAL PRIMARY KEY,
+    ip_id INTEGER NOT NULL REFERENCES ips(id) ON DELETE CASCADE,
+    host_port INTEGER NOT NULL,
+    container_id INTEGER NOT NULL REFERENCES containers(id) ON DELETE CASCADE,
+    container_port INTEGER NOT NULL,
+
+    UNIQUE (ip_id, host_port)
 );
 
 CREATE INDEX idx_users_auth_uid ON users(auth_uid);
