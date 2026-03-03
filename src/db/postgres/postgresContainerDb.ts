@@ -11,7 +11,6 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
             SELECT
                 c.host_port,
                 c.container_port,
-                ips.ip,
                 ips.version
             FROM container_ports
             JOIN ips ON c.ip_id = ips.id
@@ -21,13 +20,10 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
         );
         const ports: ContainerPortsData = {};
         portsResult.rows.forEach(row => {
-            if (!ports[row.ip]) {
-                ports[row.ip] = {
-                    ports: [],
-                    version: row.version
-                };
+            if (!ports[row.version]) {
+                ports[row.version] = [];
             }
-            ports[row.ip].ports.push({
+            ports[row.version].push({
                 containerPort: row.container_port,
                 hostPort: row.host_port
             });
