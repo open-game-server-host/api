@@ -36,16 +36,13 @@ export class PostgresUserDb extends PostgresDb implements Partial<Database> {
                 permissionsInsert += ","
             }
         }
-        console.log(`permissions: '${permissionsInsert}'`);
         const permissionResult = await client.query(`
             INSERT INTO user_permissions (
                 user_id,
                 permission
             ) VALUES
                 ${permissionsInsert}
-        `,
-            id
-        );
+        `);
         if (permissionResult.rowCount === 0) {
             await client.cancel();
             throw new OGSHError("general/unspecified", `failed to add auth uid '${authUid}' default permissions`);
