@@ -203,6 +203,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
                 throw new OGSHError("app/variant-not-found", `cannot create container with app id '${data.appId}' variant id '${data.variantId}'`);
             }
             for (const port of Object.keys(variant.ports)) {
+                console.log(`assigning ports to ip '${id}' for container port '${port}' in range ${daemon.portRangeStart} to ${daemon.portRangeEnd}`);
                 const assignPortsResult = await client.query(`
                     INSERT INTO container_ports (
                         ip_id,
