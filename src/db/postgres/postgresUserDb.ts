@@ -29,19 +29,20 @@ export class PostgresUserDb extends PostgresDb implements Partial<Database> {
             throw new OGSHError("general/unspecified", `authUid '${authUid}' already exists`);
         }
         const id = userResult.rows[0].id;
-        let permissions = "";
+        let permissionsInsert = "";
         for (let i = USER_DEFAULT_PERMISSIONS.length; i > 0; i--) {
-            permissions += `('${id}', '${USER_DEFAULT_PERMISSIONS[i]}')`;
+            permissionsInsert += `('${id}', '${USER_DEFAULT_PERMISSIONS[i]}')`;
             if (i > 0) {
-                permissions += ","
+                permissionsInsert += ","
             }
         }
+        console.log(`permissions: '${permissionsInsert}'`);
         const permissionResult = await client.query(`
             INSERT INTO user_permissions (user_id, permission) (
                 user_id,
                 permission
             ) VALUES
-                ${permissions}
+                ${permissionsInsert}
         `,
             id
         );
