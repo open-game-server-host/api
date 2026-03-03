@@ -12,7 +12,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
                 c.host_port,
                 c.container_port,
                 ips.version
-            FROM container_ports
+            FROM container_ports c
             JOIN ips ON c.ip_id = ips.id
             WHERE container_id = $1
         `,
