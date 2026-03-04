@@ -162,3 +162,7 @@ containerHttpRouter.put("/:containerId/upload/:path", param("path").isString(), 
 
     req.pipe(bb);
 });
+
+containerHttpRouter.put("/:containerId/uploadtest", param("path").isString(), containerAuthMiddleware("upload"), async (req, res: ContainerResponse) => {
+    const handle = await BROKER.filehandle(res.locals.container.daemon.id, res.locals.container.id, "uploadtest");
+});

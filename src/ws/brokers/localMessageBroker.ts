@@ -142,6 +142,19 @@ export class LocalMessageBroker implements Broker {
     }
 
     async uploadFileToContainer(daemonId: string, containerId: string, path: string, stream: Stream.Readable) {
+        const handle = this.filehandle(daemonId, containerId, path);
+        const ws = this.getDaemonWebsocket(daemonId);
+        stream.on("data", chunk => {
+            ws.send(`u${handle}` + chunk); // Data that starts with a 'u' means upload, then the next character is the file handle
+        });
+        // TODO handle stream close or error
+    }
+
+    async cancelFileUploadToContainer(dawmonId: string, containerId: string, path: string, reason: string) {
+        // TODO
+    }
+
+    async filehandle(daemonId: string, containerId: string, path: string): Promise<number> {
         const ws = this.getDaemonWebsocket(daemonId);
         ws.send(JSON.stringify({
             route: "container",
@@ -154,13 +167,6 @@ export class LocalMessageBroker implements Broker {
         console.log(`waiting for file handle`);
         const handle = await waitForFileHandle(containerId, path);
         console.log(`got handle: ${handle}`);
-        stream.on("data", chunk => {
-            ws.send(`u${handle}` + chunk); // Data that starts with a 'u' means upload, then the next character is the file handle
-        });
-        // TODO handle stream close or error
-    }
-
-    async cancelFileUploadToContainer(dawmonId: string, containerId: string, path: string, reason: string) {
-        // TODO
+        return handle;
     }
 }

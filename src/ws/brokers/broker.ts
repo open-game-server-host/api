@@ -30,6 +30,7 @@ export interface Broker {
     installContainer(daemonId: string, containerId: string, data: ContainerAppData): Promise<void>;
     registerContainer(daemonId: string, data: ContainerRegisterData): Promise<void>;
     removeContainer(daemonId: string, containerId: string): Promise<void>;
+    filehandle(daemonId: string, containerId: string, path: string): Promise<number>;
     uploadFileToContainer(daemonId: string, containerId: string, path: string, stream: Stream.Readable): Promise<void>;
     cancelFileUploadToContainer(dawmonId: string, containerId: string, path: string, reason: string): Promise<void>;
 }
@@ -65,7 +66,8 @@ function createLocalBroker(): Broker {
         registerContainer: broker.registerContainer.bind(broker),
         removeContainer: broker.removeContainer.bind(broker),
         uploadFileToContainer: broker.uploadFileToContainer.bind(broker),
-        cancelFileUploadToContainer: broker.cancelFileUploadToContainer.bind(broker)
+        cancelFileUploadToContainer: broker.cancelFileUploadToContainer.bind(broker),
+        filehandle: broker.filehandle.bind(broker)
     }
 }
 
@@ -91,7 +93,8 @@ function createRedisBroker(): Broker {
         registerContainer: notImplemented,
         removeContainer: notImplemented,
         uploadFileToContainer: notImplemented,
-        cancelFileUploadToContainer: notImplemented
+        cancelFileUploadToContainer: notImplemented,
+        filehandle: notImplemented
     }
 }
 
@@ -117,6 +120,7 @@ function createPostgresBroker(): Broker {
         registerContainer: notImplemented,
         removeContainer: notImplemented,
         uploadFileToContainer: notImplemented,
-        cancelFileUploadToContainer: notImplemented
+        cancelFileUploadToContainer: notImplemented,
+        filehandle: notImplemented
     }
 }
