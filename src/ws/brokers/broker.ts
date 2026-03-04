@@ -1,4 +1,5 @@
 import { ContainerAppData, ContainerRegisterData, OGSHError } from "@open-game-server-host/backend-lib";
+import Stream from "node:stream";
 import { WebSocket } from "ws";
 import { getBrokerType } from "../../env.js";
 import { LocalMessageBroker } from "./localMessageBroker.js";
@@ -29,7 +30,8 @@ export interface Broker {
     installContainer(daemonId: string, containerId: string, data: ContainerAppData): Promise<void>;
     registerContainer(daemonId: string, data: ContainerRegisterData): Promise<void>;
     removeContainer(daemonId: string, containerId: string): Promise<void>;
-    test(daemonId: string, data: string): Promise<void>;
+    uploadFileToContainer(daemonId: string, containerId: string, path: string, stream: Stream.Readable): Promise<void>;
+    cancelFileUploadToContainer(dawmonId: string, containerId: string, path: string, reason: string): Promise<void>;
 }
 
 export const BROKER = createBroker();
@@ -62,7 +64,8 @@ function createLocalBroker(): Broker {
         installContainer: broker.installContainer.bind(broker),
         registerContainer: broker.registerContainer.bind(broker),
         removeContainer: broker.removeContainer.bind(broker),
-        test: broker.test.bind(broker)
+        uploadFileToContainer: broker.uploadFileToContainer.bind(broker),
+        cancelFileUploadToContainer: broker.cancelFileUploadToContainer.bind(broker)
     }
 }
 
@@ -87,7 +90,8 @@ function createRedisBroker(): Broker {
         installContainer: notImplemented,
         registerContainer: notImplemented,
         removeContainer: notImplemented,
-        test: notImplemented
+        uploadFileToContainer: notImplemented,
+        cancelFileUploadToContainer: notImplemented
     }
 }
 
@@ -112,6 +116,7 @@ function createPostgresBroker(): Broker {
         installContainer: notImplemented,
         registerContainer: notImplemented,
         removeContainer: notImplemented,
-        test: notImplemented
+        uploadFileToContainer: notImplemented,
+        cancelFileUploadToContainer: notImplemented
     }
 }

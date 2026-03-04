@@ -1,4 +1,5 @@
-import { BodyRequest, getVersion, OGSHError, respond } from "@open-game-server-host/backend-lib";
+import { BodyRequest, formatErrorResponseBody, getErrorHttpStatus, getVersion, OGSHError, respond } from "@open-game-server-host/backend-lib";
+import busboy from "busboy";
 import { Request, Response, Router } from "express";
 import { body, param } from "express-validator";
 import { containerAuthMiddleware, ContainerResponse } from "../../auth/containerAuth.js";
@@ -32,7 +33,6 @@ containerHttpRouter.post("/", [
     const { appId, variantId, versionId, segments, name, regionId } = req.body;
     // TODO check user has enough tokens
     const container = await createContainer(res.locals.user.id, regionId, appId, variantId, versionId, segments, name);
-    await BROKER.test(container.daemon.id, "this is a test buffer");
     respond(res, container);
 });
 
@@ -140,4 +140,25 @@ containerHttpRouter.post("/:containerId/config", async (req, res) => {
     // Note that to get config data, you must use the files endpoints
     // TODO send internal request
     throw new OGSHError("general/unspecified", `not implemented`);
+});
+
+containerHttpRouter.put("/:containerId/upload/:path", param("path").isString(), containerAuthMiddleware("upload"), async (req, res: ContainerResponse) => {
+    const bb = busboy({ headers: req.headers });
+
+    bb.on("file", (name, stream, fileInfo) => {
+        BROKER.uploadFileToContainer(res.locals.container.daemon.id, res.locals.container.id, req.params.path as string, stream);
+    });
+
+    bb.on("error", error => {
+        BROKER.cancelFileUploadToContainer(res.locals.container.daemon.id, res.locals.container.id, req.params.path as string, `${error}`);
+        const body = formatErrorResponseBody(error as Error);
+        res.status(getErrorHttpStatus(body.error));
+        res.send(body);
+    });
+
+    bb.on("finish", () => {
+        respond(res);
+    });
+
+    req.pipe(bb);
 });

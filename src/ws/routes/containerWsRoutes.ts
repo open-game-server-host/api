@@ -1,5 +1,6 @@
 import { WsRouter } from "@open-game-server-host/backend-lib";
 import { BROKER } from "../brokers/broker.js";
+import { fileHandleOpened } from "../fileHandles.js";
 
 export const containerWsRouter = new WsRouter("container");
 
@@ -14,6 +15,15 @@ containerWsRouter.register("logsAndStats", async (ws, body: ContainerLogsAndStat
     // TODO validate this container id is from this daemon
     // TODO forward statistics and console logs to connected clients
     await BROKER.sendLogsAndStatsToUsers(body.containerId, body.logsAndStats);
+});
+
+interface ContainerOpenFileHandle {
+    containerId: string;
+    path: string;
+    handle: number;
+}
+containerWsRouter.register("openFileHandle", async (ws, body: ContainerOpenFileHandle, locals) => {
+    fileHandleOpened(body.containerId, body.path, body.handle);
 });
 
 // TODO file endpoints

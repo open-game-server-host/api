@@ -22,6 +22,8 @@ export type ContainerPermission =
     | "resize"
     | "changeRegion"
     | "makeBackup"
+    | "upload"
+    | "download"
 ;
 
 export const CONTAINER_ALL_PERMISSION: ContainerPermission = "*";
