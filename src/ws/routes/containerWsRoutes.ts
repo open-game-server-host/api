@@ -22,7 +22,7 @@ interface ContainerOpenFileHandle {
     path: string;
     handle: number;
 }
-containerWsRouter.register("openFileHandle", async (ws, body: ContainerOpenFileHandle, locals) => {
+containerWsRouter.register("fileHandle", async (ws, body: ContainerOpenFileHandle, locals) => {
     fileHandleOpened(body.containerId, body.path, body.handle);
 });
 
