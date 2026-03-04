@@ -29,6 +29,7 @@ export interface Broker {
     installContainer(daemonId: string, containerId: string, data: ContainerAppData): Promise<void>;
     registerContainer(daemonId: string, data: ContainerRegisterData): Promise<void>;
     removeContainer(daemonId: string, containerId: string): Promise<void>;
+    test(daemonId: string, data: string): Promise<void>;
 }
 
 export const BROKER = createBroker();
@@ -60,7 +61,8 @@ function createLocalBroker(): Broker {
         sendCommandToContainer: broker.sendCommandToContainer.bind(broker),
         installContainer: broker.installContainer.bind(broker),
         registerContainer: broker.registerContainer.bind(broker),
-        removeContainer: broker.removeContainer.bind(broker)
+        removeContainer: broker.removeContainer.bind(broker),
+        test: broker.test.bind(broker)
     }
 }
 
@@ -84,7 +86,8 @@ function createRedisBroker(): Broker {
         sendCommandToContainer: notImplemented,
         installContainer: notImplemented,
         registerContainer: notImplemented,
-        removeContainer: notImplemented
+        removeContainer: notImplemented,
+        test: notImplemented
     }
 }
 
@@ -108,6 +111,7 @@ function createPostgresBroker(): Broker {
         sendCommandToContainer: notImplemented,
         installContainer: notImplemented,
         registerContainer: notImplemented,
-        removeContainer: notImplemented
+        removeContainer: notImplemented,
+        test: notImplemented
     }
 }

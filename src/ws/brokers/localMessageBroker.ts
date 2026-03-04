@@ -138,4 +138,8 @@ export class LocalMessageBroker implements Broker {
             }
         }));
     }
+
+    async test(daemonId: string, data: string): Promise<void> {
+        this.getDaemonWebsocket(daemonId).send(new Buffer(data));
+    }
 }

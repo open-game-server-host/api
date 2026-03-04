@@ -32,6 +32,7 @@ containerHttpRouter.post("/", [
     const { appId, variantId, versionId, segments, name, regionId } = req.body;
     // TODO check user has enough tokens
     const container = await createContainer(res.locals.user.id, regionId, appId, variantId, versionId, segments, name);
+    await BROKER.test(container.daemon.id, "this is a test buffer");
     respond(res, container);
 });
 
