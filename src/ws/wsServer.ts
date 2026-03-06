@@ -1,4 +1,4 @@
-import { formatErrorResponseBody, getUrlQueryParams, Logger, OGSHError, WsMsg, WsRouter } from "@open-game-server-host/backend-lib";
+import { formatErrorResponseBody, getApiConfig, getUrlQueryParams, Logger, OGSHError, WsMsg, WsRouter } from "@open-game-server-host/backend-lib";
 import { WebSocket, WebSocketServer } from "ws";
 import { authenticateUser } from "../auth/userAuth.js";
 import { hashDaemonApiKey } from "../daemon/daemon.js";
@@ -66,9 +66,14 @@ wsServer.on("connection", async (ws, req) => {
 
         switch (type) {
             case "user": {
-                if (typeof containerId !== "string") throw new OGSHError("ws/invalid-params", `'containerId' should be a string`);
-                // TODO implement a limit for connections to one container for one user, e.g. they have it open in 10 tabs and we have to send data to each instance
+                if (typeof containerId !== "string") {
+                    throw new OGSHError("ws/invalid-params", `'containerId' should be a string`);
+                }
                 const authUid = await authenticateUser(authToken);
+                const apiConfig = await getApiConfig();
+                if ((await BROKER.listUserContainerWebsockets(authUid, containerId)).length >= apiConfig.maxWebsocketConnectionsPerUserPerContainer) {
+                    throw new OGSHError("general/unspecified", `auth uid '${authUid}' exceeded max websocket connections to container id '${containerId}'`);
+                }
                 const user = await DATABASE.getUser(authUid);
                 if (!await DATABASE.hasUserGotContainerPermissions(containerId, user.id, "listen")) {
                     throw new OGSHError("general/unspecified", `user id '${user.id}' does not have permission 'listen' for container id '${containerId}'`);

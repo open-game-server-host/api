@@ -18,6 +18,7 @@ export interface Broker {
     registerUserConnection(authUid: string, ws: WebSocket, containerId: string): Promise<void>;
     removeUserConnection(authUid: string): Promise<void>;
     sendLogsAndStatsToUsers(containerId: string, body: any): Promise<void>;
+    listUserContainerWebsockets(authUid: string, containerId: string): Promise<WebSocket[]>;
 
     registerDaemonConnection(daemonId: string, ws: WebSocket): Promise<void>;
     removeDaemonConnection(daemonId: string): Promise<void>;
@@ -49,8 +50,8 @@ function createLocalBroker(): Broker {
     return {
         registerUserConnection: broker.registerUserConnection.bind(broker),
         removeUserConnection: broker.removeUserConnection.bind(broker),
-
         sendLogsAndStatsToUsers: broker.sendLogsAndStatsToUsers.bind(broker),
+        listUserContainerWebsockets: broker.listUserContainerWebsockets.bind(broker),
 
         registerDaemonConnection: broker.registerDaemonConnection.bind(broker),
         removeDaemonConnection: broker.removeDaemonConnection.bind(broker),
@@ -74,8 +75,8 @@ function createRedisBroker(): Broker {
     return {
         registerUserConnection: notImplemented,
         removeUserConnection: notImplemented,
-
         sendLogsAndStatsToUsers: notImplemented,
+        listUserContainerWebsockets: notImplemented,
 
         registerDaemonConnection: notImplemented,
         removeDaemonConnection: notImplemented,
@@ -99,8 +100,8 @@ function createPostgresBroker(): Broker {
     return {
         registerUserConnection: notImplemented,
         removeUserConnection: notImplemented,
-
         sendLogsAndStatsToUsers: notImplemented,
+        listUserContainerWebsockets: notImplemented,
 
         registerDaemonConnection: notImplemented,
         removeDaemonConnection: notImplemented,

@@ -4,22 +4,26 @@ import { Broker, UserMessage } from "./broker.js";
 
 export class LocalMessageBroker implements Broker {
     private containerIdByWebsocket = new Map<WebSocket, string>();
-    private websocketByAuthUid = new Map<string, WebSocket>();
+    private websocketByAuthUid = new Map<string, WebSocket[]>();
 
     private websocketByDaemonId = new Map<string, WebSocket>();
 
     async registerUserConnection(authUid: string, ws: WebSocket, containerId: string) {
-        this.websocketByAuthUid.set(authUid, ws);
+        if (!this.websocketByAuthUid.has(authUid)) {
+            this.websocketByAuthUid.set(authUid, [ws]);
+        } else {
+            this.websocketByAuthUid.get(authUid)!.push(ws);
+        }
         this.containerIdByWebsocket.set(ws, containerId);
     }
 
     async removeUserConnection(authUid: string) {
-        const ws = this.websocketByAuthUid.get(authUid);
-        if (!ws) {
+        const websockets = this.websocketByAuthUid.get(authUid);
+        if (!websockets) {
             return;
         }
         this.websocketByAuthUid.delete(authUid);
-        this.containerIdByWebsocket.delete(ws);
+        websockets.forEach(ws => this.containerIdByWebsocket.delete(ws));
     }
 
     private getWebsocketsForContainer(containerId: string): WebSocket[] {
@@ -30,6 +34,10 @@ export class LocalMessageBroker implements Broker {
             }
         });
         return sockets;
+    }
+
+    async listUserContainerWebsockets(authUid: string, containerId: string): Promise<WebSocket[]> {
+        return this.websocketByAuthUid.get(authUid) || [];
     }
 
     async sendLogsAndStatsToUsers(containerId: string, body: any) {
