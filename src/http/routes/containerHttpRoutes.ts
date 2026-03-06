@@ -30,7 +30,6 @@ containerHttpRouter.post("/", [
     body("regionId").isString().isLength({ min: 3, max: 3})
 ], userPermissionMiddleware("createContainer"), async (req: BodyRequest<ContainerCreateBody>, res: UserPermissionResponse) => {
     const { appId, variantId, versionId, segments, name, regionId } = req.body;
-    // TODO check user has enough tokens
     const container = await createContainer(res.locals.user.id, regionId, appId, variantId, versionId, segments, name);
     respond(res, container);
 });
