@@ -22,6 +22,7 @@ export type ContainerPermission =
     | "resize"
     | "changeRegion"
     | "makeBackup"
+    | "listen" // Listen to websockets to get stats and console logs
 ;
 
 export const CONTAINER_ALL_PERMISSION: ContainerPermission = "*";

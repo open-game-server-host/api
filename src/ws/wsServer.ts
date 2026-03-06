@@ -62,7 +62,10 @@ wsServer.on("connection", async (ws, req) => {
                 if (typeof containerId !== "string") throw new OGSHError("ws/invalid-params", `'containerId' should be a string`);
                 // TODO implement a limit for connections to one container for one user, e.g. they have it open in 10 tabs and we have to send data to each instance
                 const authUid = await authenticateUser(authToken);
-                // TODO check whether the user has access to this container
+                const user = await DATABASE.getUser(authUid);
+                if (!await DATABASE.hasUserGotContainerPermissions(containerId, user.id, "listen")) {
+                    throw new OGSHError("general/unspecified", `user id '${user.id}' does not have permission 'listen' for container id '${containerId}'`);
+                }
                 await BROKER.registerUserConnection(authUid, ws, containerId);
                 ws.on("message", () => ws.close(WS_CLOSE_CODE.FORBIDDEN));
                 logger.info("User connected", {
@@ -94,7 +97,6 @@ wsServer.on("connection", async (ws, req) => {
 });
 
 function handleWsMessage(ws: WebSocket, data: WebSocket.RawData, isBinary: boolean) {
-    // TODO handle binary data for file uploads/downloads
     let locals: any = {};
     try {
         const json = JSON.parse(data.toString()) as WsMsg;
