@@ -128,22 +128,13 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
     }
 
     async createContainer(data: CreateContainerData): Promise<Container> {
-        const version = await getVersion(data.appId, data.variantId, data.versionId);
-        if (!version) {
-            throw new OGSHError("general/unspecified", `tried to create container with invalid app id '${data.appId}' variant id '${data.variantId}' version id '${data.versionId}'`);
-        }
-        if (!Number.isInteger(data.segments)) {
-            throw new OGSHError("general/unspecified", `tried to create container with invalid segments '${data.segments}'`);
-        }
-        if (typeof data.free !== "boolean") throw new OGSHError("general/unspecified", `create container data 'free' field was not a boolean`);
-        const containerConfig = await getContainerConfig();
-        if (typeof data.name !== "string" || data.name.length > containerConfig.nameMaxLength) throw new OGSHError("general/unspecified", `create container data 'name' is either not a string or too long`);
         if (!this.jsonFileExists("user", data.userId)) throw new OGSHError("general/unspecified", `user id '${data.userId}' not found`);
         if (!this.jsonFileExists("region", data.regionId)) throw new OGSHError("general/unspecified", `region id '${data.regionId}' not found`);
 
         const daemon = await this.reserveSegments(data.regionId, segmentReserveMethod, data.segments);
 
         const variant = await getVariant(data.appId, data.variantId);
+        const version = await getVersion(data.appId, data.variantId, data.versionId);
         const ports: ContainerPorts = {};
 
         if (daemon.portRangeStart && daemon.portRangeEnd) {
@@ -177,7 +168,7 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
             versionId: data.versionId,
             free: data.free,
             name: data.name,
-            runtime: version.defaultRuntime,
+            runtime: version!.defaultRuntime,
             segments: data.segments,
             userId: data.userId,
             contractLengthDays: 30, // TODO this should be defined by the plan the user selects at checkout

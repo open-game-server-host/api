@@ -1,4 +1,4 @@
-import { Container, Daemon, Ip, OGSHError, Region, UpdateDaemonData, User } from "@open-game-server-host/backend-lib";
+import { Container, Daemon, getContainerConfig, getVersion, Ip, OGSHError, Region, UpdateDaemonData, User } from "@open-game-server-host/backend-lib";
 import { getDbType } from "../env.js";
 import { ContainerPermission, CreateContainerData } from "../interfaces/container.js";
 import { SetupDaemonData, SetupIncompleteDaemon } from "../interfaces/daemon.js";
@@ -56,7 +56,92 @@ export interface Database {
     hasUserGotPermissions(userId: string, permissions: UserPermission[]): Promise<boolean>;
 }
 
-export const DATABASE = createDb();
+const dbFunctions = createDb();
+export const DATABASE: Database = {
+    ...dbFunctions,
+    createContainer: async (data: CreateContainerData) => {
+        const version = await getVersion(data.appId, data.variantId, data.versionId);
+        if (!version) {
+            throw new OGSHError("general/unspecified", `tried to create container with invalid app id '${data.appId}' variant id '${data.variantId}' version id '${data.versionId}'`);
+        }
+        if (!version.defaultRuntime) {
+            throw new OGSHError("general/unspecified", `app id '${data.appId}' variant id '${data.variantId}' version id '${data.versionId}' has no default runtime`);
+        }
+        if (!Number.isInteger(data.segments)) {
+            throw new OGSHError("general/unspecified", `tried to create container with invalid segments '${data.segments}'`);
+        }
+        if (typeof data.free !== "boolean") {
+            throw new OGSHError("general/unspecified", `create container data 'free' field was not a boolean`);
+        }
+        const containerConfig = await getContainerConfig();
+        if (typeof data.name !== "string" || data.name.length > containerConfig.nameMaxLength) {
+            throw new OGSHError("general/unspecified", `create container data 'name' is either not a string or too long`);
+        }
+        return dbFunctions.createContainer(data);
+    },
+    terminateContainer: async (containerId: string, terminateAt: Date) => {
+        if (!terminateAt || !(terminateAt instanceof Date)) {
+            throw new OGSHError("general/unspecified", `failed to terminate container id '${containerId}', terminateAt is not a Date`);
+        }
+        if (terminateAt.getTime() < Date.now()) {
+            throw new OGSHError("general/unspecified", `container id '${containerId}' termination date must be in the future`);
+        }
+        return dbFunctions.terminateContainer(containerId, terminateAt);
+    },
+    setContainerName: async (containerId: string, name: string) => {
+        const containerConfig = await getContainerConfig();
+        if (!name || name.length > containerConfig.nameMaxLength) {
+            throw new OGSHError("general/unspecified", `could not set name of container id '${containerId}', name either undefined or above max length (${containerConfig.nameMaxLength}})`);
+        }
+        return dbFunctions.setContainerName(containerId, name);
+    },
+    setContainerApp: async (containerId, appId, variantId, versionId) => {
+        const version = await getVersion(appId, variantId, versionId);
+        if (!version) {
+            throw new OGSHError("app/version-not-found", `could not change container id '${containerId}' to app id '${appId}' variant id '${variantId}' version id '${versionId}'`);
+        }
+        return dbFunctions.setContainerApp(containerId, appId, variantId, versionId);
+    },
+    updateDaemon: async (daemonId: string, data: UpdateDaemonData) => {
+        if (typeof data.cpuArch !== "string" || data.cpuArch.length > 10) {
+            throw new OGSHError("general/unspecified", `updating daemon id '${daemonId}' cpuArch either not a string or too long`);
+        }
+        if (typeof data.cpuName !== "string" || data.cpuName.length > 30) {
+            throw new OGSHError("general/unspecified", `updating daemon id '${daemonId}' cpuName either not a string or too long`);
+        }
+        if (data.os !== "linux" && data.os !== "win32") {
+            throw new OGSHError("general/unspecified", `updating daemon id '${daemonId}' invalid os '${data.os}'`);
+        }
+        if (!data.segmentsMax || !Number.isInteger(data.segmentsMax) || data.segmentsMax < 0) {
+            throw new OGSHError("general/unspecified", `updating dameon '${daemonId}' segmentsMax either not an integer or < 0`);
+        }
+        return dbFunctions.updateDaemon(daemonId, data);
+    },
+    setupDaemon: async (daemonId: string, data: SetupDaemonData) => {
+        if (!data.portRangeStart || !Number.isInteger(data.portRangeStart) || data.portRangeStart < 1024) {
+            throw new OGSHError("general/unspecified", `setup daemon id '${daemonId}' portRangeStart either not an integer or < 1024`);
+        }
+        if (!data.portRangeEnd || !Number.isInteger(data.portRangeEnd) || data.portRangeEnd < data.portRangeStart) {
+            throw new OGSHError("general/unspecified", `setup daemon id '${daemonId}' portRangeEnd either not an integer or < portRangeStart (${data.portRangeStart})`);
+        }
+        if (!data.segmentsUsable || !Number.isInteger(data.segmentsUsable)) {
+            throw new OGSHError("general/unspecified", `setup daemon id '${daemonId}' segmentsUsable is not an integer`);
+        }
+        return dbFunctions.setupDaemon(daemonId, data);
+    },
+    createRegion: async (data: CreateRegionData) => {
+        if (typeof data.countryCode !== "string" || data.countryCode.length > 3) {
+            throw new OGSHError("general/unspecified", `failed to create region, countryCode is undefined or longer than 3 characters`);
+        }
+        if (typeof data.name !== "string" || data.name.length > 45) {
+            throw new OGSHError("general/unspecified", `failed to create region, name is undefined or longer than 45 characters`);
+        }
+        if (data.priceMultiplier < 0) {
+            throw new OGSHError("general/unspecified", `failed to create region, priceMultiplier < 0`);
+        }
+        return dbFunctions.createRegion(data);
+    }
+}
 
 function createDb(): Database {
     switch (getDbType()) {

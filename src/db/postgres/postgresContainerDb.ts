@@ -161,9 +161,6 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
 
     async createContainer(data: CreateContainerData): Promise<Container> {
         const version = await getVersion(data.appId, data.variantId, data.versionId);
-        if (!version) {
-            throw new OGSHError("app/version-not-found", `cannot create container with app id '${data.appId}' variant id '${data.variantId}' version id '${data.versionId}'`);
-        }
         const client = await this.startTransaction();
         const assignedDaemon = await this.reserveSegments(client, segmentReserveMethod, data.regionId, data.segments);
         const createContainerResult = await client.query(`
@@ -196,7 +193,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
             data.versionId, // 3
             30, // 4 TODO specified by the plan the user selects during checkout
             data.name, // 5
-            version.defaultRuntime, // 6
+            version!.defaultRuntime, // 6
             data.segments, // 7
             data.userId, // 8
             assignedDaemon.id // 9

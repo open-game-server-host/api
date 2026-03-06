@@ -125,6 +125,9 @@ export class PostgresDaemonDb extends PostgresDb implements Partial<Database> {
             data.segmentsMax,
             daemonId
         );
+        if (result.rowCount === 0) {
+            throw new OGSHError("general/unspecified", `could not update missing row daemon id '${daemonId}'`);
+        }
     }
 
     async setupDaemon(daemonId: string, data: SetupDaemonData) {
