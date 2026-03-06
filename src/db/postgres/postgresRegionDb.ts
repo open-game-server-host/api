@@ -38,8 +38,16 @@ export class PostgresRegionDb extends PostgresDb implements Partial<Database> {
         return this.getRegion(id);
     }
 
-    async listRegions(): Promise<Region[]> {
-        const result = await this.query("SELECT * FROM regions");
+    async listRegions(page: number = 0, resultsPerPage: number = 10): Promise<Region[]> {
+        const result = await this.query(`
+            SELECT *
+            FROM regions
+            LIMIT $1
+            OFFSET $2
+        `,
+            resultsPerPage,
+            page * resultsPerPage
+        );
         const regions: Region[] = [];
         result.rows.forEach(row => {
             regions.push({

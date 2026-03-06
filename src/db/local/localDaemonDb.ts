@@ -105,23 +105,31 @@ export class LocalDaemonDb extends LocalDb implements Partial<Database> {
         });
     }
 
-    async listDaemonsByRegion(regionId: string): Promise<Daemon[]> {
+    async listDaemonsByRegion(regionId: string, page: number = 0, resultPerPage: number = 10): Promise<Daemon[]> {
+        let index = 0;
         const daemons: Daemon[] = [];
         for (const id of this.enumerateJsonFiles("daemon")) {
             const daemon = await this.getDaemon(id);
             if (`${daemon.region?.id}` === `${regionId}`) {
-                daemons.push(daemon);
+                if (index >= page * resultPerPage) {
+                    daemons.push(daemon);
+                }
+                index++;
             }
         }
         return daemons;
     }
 
-    async listSetupIncompleteDaemons(): Promise<SetupIncompleteDaemon[]> {
+    async listSetupIncompleteDaemons(page: number = 0, resultsPerPage: number = 0): Promise<SetupIncompleteDaemon[]> {
+        let index = 0;
         const daemons: SetupIncompleteDaemon[] = [];
         for (const id of this.enumerateJsonFiles("daemon")) {
             const daemon = await this.getDaemon(id);
             if (!daemon.setupComplete) {
-                daemons.push(daemon);
+                if (index >= page * resultsPerPage) {
+                    daemons.push(daemon);
+                }
+                index++;
             }
         }
         return daemons;

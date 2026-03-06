@@ -15,10 +15,14 @@ export class LocalIpDb extends LocalDb {
         throw new OGSHError("general/unspecified", `could not find ip '${ip}'`);
     }
 
-    async listIps(): Promise<Ip[]> {
+    async listIps(page: number = 0, resultsPerPage: number = 10): Promise<Ip[]> {
+        let index = 0;
         const ips: Ip[] = [];
         for (const id of this.enumerateJsonFiles("ip")) {
-            ips.push(await this.getIp(id));
+            if (index >= page * resultsPerPage) {
+                ips.push(await this.getIp(id));
+            }
+            index++;
         }
         return ips;
     }

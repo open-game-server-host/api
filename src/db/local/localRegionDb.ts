@@ -17,10 +17,14 @@ export class LocalRegionDb extends LocalDb implements Partial<Database> {
         return this.getRegion(id);
     }
 
-    async listRegions(): Promise<Region[]> {
+    async listRegions(page: number = 0, resultsPerPage: number = 10): Promise<Region[]> {
+        let index = 0;
         const regions: Region[] = [];
         for (const id of this.enumerateJsonFiles("region")) {
-            regions.push(await this.getRegion(id));
+            if (index >= page * resultsPerPage) {
+                regions.push(await this.getRegion(id));
+            }
+            index++;
         }
         return regions;
     }

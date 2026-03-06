@@ -27,8 +27,8 @@ export interface Database {
     createContainer(data: CreateContainerData): Promise<Container>;
     terminateContainer(containerId: string, terminateAt: Date): Promise<void>;
     cancelTerminateContainer(containerId: string): Promise<void>;
-    listActiveContainersByUser(authUid: string): Promise<Container[]>; // TOOD paginate
-    listActiveContainersByDaemon(daemonId: string): Promise<Container[]>; // TODO paginate
+    listActiveContainersByUser(authUid: string, page?: number, resultsPerPage?: number): Promise<Container[]>;
+    listActiveContainersByDaemon(daemonId: string, page?: number, resultsPerPage?: number): Promise<Container[]>;
     setContainerName(containerId: string, name: string): Promise<void>;
     setContainerRuntime(containerId: string, runtime: string): Promise<void>;
     setContainerApp(containerId: string, appId: string, variantId: string, versionId: string): Promise<void>;
@@ -38,16 +38,16 @@ export interface Database {
     createDaemon(): Promise<string>; // Returns API key
     updateDaemon(daemonId: string, data: UpdateDaemonData): Promise<void>;
     setupDaemon(daemonId: string, data: SetupDaemonData): Promise<void>;
-    listDaemonsByRegion(regionId: string): Promise<Daemon[]>; // TODO paginate
-    listSetupIncompleteDaemons(): Promise<SetupIncompleteDaemon[]>; // TODO paginate
+    listDaemonsByRegion(regionId: string, page?: number, resultsPerPage?: number): Promise<Daemon[]>;
+    listSetupIncompleteDaemons(page?: number, resultsPerPage?: number): Promise<SetupIncompleteDaemon[]>;
 
     getIp(ipId: string): Promise<Ip>;
     getIpByValue(ip: string): Promise<Ip>;
-    listIps(): Promise<Ip[]>; // TODO paginate
+    listIps(page?: number, resultsPerPage?: number): Promise<Ip[]>;
 
     getRegion(regionId: string): Promise<Region>;
     createRegion(data: CreateRegionData): Promise<Region>;
-    listRegions(): Promise<Region[]>;
+    listRegions(page?: number, resultsPerPage?: number): Promise<Region[]>;
 
     doesUserExist(userId: string): Promise<boolean>;
     getUser(authUid: string): Promise<User>;

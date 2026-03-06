@@ -171,7 +171,7 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
             runtime: version!.defaultRuntime,
             segments: data.segments,
             userId: data.userId,
-            contractLengthDays: 30, // TODO this should be defined by the plan the user selects at checkout
+            contractLengthDays: 30,
             createdAt: Date.now(),
             daemonId: daemon.id,
             locked: false,
@@ -220,22 +220,30 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
         this.writeJsonFile("container", containerId, raw);
     }
 
-    async listActiveContainersByDaemon(daemonId: string): Promise<Container[]> {
+    async listActiveContainersByDaemon(daemonId: string, page: number = 0, resultsPerPage: number = 10): Promise<Container[]> {
+        let index = 0;
         const containers: Container[] = [];
         for (const raw of this.listJsonFiles<ContainerLocalDbFile>("container")
         .filter(c => c.data.daemonId === daemonId)
         .filter(c => !isContainerTerminated(c.data))) {
-            containers.push(await this.getContainer(raw.id));
+            if (index >= page * resultsPerPage) {
+                containers.push(await this.getContainer(raw.id));
+            }
+            index++;
         }
         return containers;
     }
 
-    async listActiveContainersByUser(uid: string): Promise<Container[]> {
+    async listActiveContainersByUser(uid: string, page: number = 0, resultPerPage: number = 10): Promise<Container[]> {
+        let index = 0;
         const containers: Container[] = [];
         for (const raw of this.listJsonFiles<ContainerLocalDbFile>("container")
         .filter(c => c.data.userId === uid)
         .filter(c => !isContainerTerminated(c.data))) {
-            containers.push(await this.getContainer(raw.id));
+            if (index >= page * resultPerPage) {
+                containers.push(await this.getContainer(raw.id));
+            }
+            index++;
         }
         return containers;
     }

@@ -29,8 +29,16 @@ export class PostgresIpDb extends PostgresDb implements Partial<Database> {
         }
     }
 
-    async listIps(): Promise<Ip[]> {
-        const result = await this.query(`SELECT * FROM ips`);
+    async listIps(page: number, resultsPerPage: number): Promise<Ip[]> {
+        const result = await this.query(`
+            SELECT *
+            FROM ips
+            LIMIT $1
+            OFFSET $2
+        `,
+            resultsPerPage,
+            page * resultsPerPage
+        );
         const ips: Ip[] = [];
         result.rows.forEach(row => {
             ips.push({

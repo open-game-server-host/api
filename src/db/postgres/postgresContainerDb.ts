@@ -191,7 +191,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
             data.appId, // 1
             data.variantId, // 2
             data.versionId, // 3
-            30, // 4 TODO specified by the plan the user selects during checkout
+            30, // 4
             data.name, // 5
             version!.defaultRuntime, // 6
             data.segments, // 7
@@ -307,7 +307,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
         }
     }
 
-    async listActiveContainersByUser(authUid: string): Promise<Container[]> {
+    async listActiveContainersByUser(authUid: string, page: number = 0, resultsPerPage: number = 10): Promise<Container[]> {
         const result = await this.query(`
             SELECT c.*
             FROM containers c
@@ -315,8 +315,12 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
             WHERE
                 u.auth_uid = $1
                 AND (terminate_at IS NULL OR terminate_at <= NOW())
+            LIMIT $2
+            OFFSET $3
         `,
-            authUid
+            authUid,
+            resultsPerPage,
+            page * resultsPerPage
         );
         const containers: Container[] = [];
         for (const row of result.rows) {
@@ -325,7 +329,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
         return containers;
     }
 
-    async listActiveContainersByDaemon(daemonId: string): Promise<Container[]> {
+    async listActiveContainersByDaemon(daemonId: string, page: number = 0, resultsPerPage: number = 10): Promise<Container[]> {
         const result = await this.query(`
             SELECT c.*
             FROM containers c
@@ -333,8 +337,12 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
             WHERE
                 c.daemon_id = $1
                 AND (terminate_at IS NULL OR terminate_at <= NOW())
+            LIMIT $2
+            OFFSET $3
         `,
-            daemonId
+            daemonId,
+            resultsPerPage,
+            page * resultsPerPage
         );
         const containers: Container[] = [];
         for (const row of result.rows) {

@@ -154,7 +154,7 @@ export class PostgresDaemonDb extends PostgresDb implements Partial<Database> {
         }
     }
 
-    async listDaemonsByRegion(regionId: string): Promise<Daemon[]> {
+    async listDaemonsByRegion(regionId: string, page: number = 0, resultsPerPage: number = 10): Promise<Daemon[]> {
         const result = await this.query(`
             SELECT 
                 d.*,
@@ -165,8 +165,12 @@ export class PostgresDaemonDb extends PostgresDb implements Partial<Database> {
             LEFT JOIN regions r ON d.region_id = r.id
             WHERE
                 d.region_id = $1
+            LIMIT $2
+            OFFSET $3
         `,
-            regionId
+            regionId,
+            resultsPerPage,
+            page * resultsPerPage
         );
         const daemons: Daemon[] = [];
         for (const row of result.rows) {
@@ -175,7 +179,7 @@ export class PostgresDaemonDb extends PostgresDb implements Partial<Database> {
         return daemons;
     }
 
-    async listSetupIncompleteDaemons(): Promise<SetupIncompleteDaemon[]> {
+    async listSetupIncompleteDaemons(page: number = 0, resultsPerPage: number = 10): Promise<SetupIncompleteDaemon[]> {
         const result = await this.query(`
             SELECT 
                 d.*,
@@ -186,7 +190,12 @@ export class PostgresDaemonDb extends PostgresDb implements Partial<Database> {
             LEFT JOIN regions r ON d.region_id = r.id
             WHERE
                 d.setup_complete = FALSE
-            `);
+            LIMIT $1
+            OFFSET $2
+        `,
+            resultsPerPage,
+            page * resultsPerPage
+        );
         const daemons: Daemon[] = [];
         for (const row of result.rows) {
             daemons.push(await this.convertRowToDaemon(row));
