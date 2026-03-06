@@ -25,14 +25,13 @@ containerHttpRouter.post("/", [
     body("appId").isString(),
     body("variantId").isString(),
     body("versionId").isString(),
-    body("segments").isInt({ min: 1 }), // TODO define max segments in global config
+    body("segments").isInt({ min: 1 }),
     body("name").isString().isLength({ min: 1, max: 30}),
     body("regionId").isString().isLength({ min: 3, max: 3})
 ], userPermissionMiddleware("createContainer"), async (req: BodyRequest<ContainerCreateBody>, res: UserPermissionResponse) => {
     const { appId, variantId, versionId, segments, name, regionId } = req.body;
     // TODO check user has enough tokens
     const container = await createContainer(res.locals.user.id, regionId, appId, variantId, versionId, segments, name);
-    await BROKER.test(container.daemon.id, "this is a test buffer");
     respond(res, container);
 });
 
@@ -45,20 +44,45 @@ containerHttpRouter.get("/:containerId", parseContainerId, async (req: Container
     respond(res, container);
 });
 
-containerHttpRouter.delete("/:containerId", parseContainerId, containerAuthMiddleware("terminate"), async (req: ContainerRequest, res: ContainerResponse) => {
-    await DATABASE.terminateContainer(res.locals.container.id, new Date()); // TODO in the future support selecting termination date
+interface ContainerTerminateBody {
+    date: Date;
+}
+containerHttpRouter.delete("/:containerId", body("date").custom((date, meta) => {
+    const now = new Date();
+    meta.req.body.date = now;
+    if (date) {
+        try {
+            meta.req.body.date = new Date(date);
+            if (meta.req.body.date.getTime() < now.getTime()) {
+                throw new OGSHError("general/unspecified", `termination date is < now`);
+            }
+        } catch (error) {
+            throw new OGSHError("general/unspecified", `failed to parse date '${date}'`);
+        }
+    }
+}), parseContainerId, containerAuthMiddleware("terminate"), async (req: ContainerRequest<ContainerTerminateBody>, res: ContainerResponse) => {
+    await DATABASE.terminateContainer(res.locals.container.id, req.body.date);
     await BROKER.removeContainer(res.locals.container.daemon.id, res.locals.container.id)
     respond(res);
 });
 
-containerHttpRouter.post("/:containerId/cancel", parseContainerId, async (req: ContainerRequest, res) => {
-    // TODO undo termination if before the end date
-    throw new OGSHError("general/unspecified", `not implemented`);
+containerHttpRouter.post("/:containerId/cancel", parseContainerId, containerAuthMiddleware("terminate"), async (req: ContainerRequest, res: ContainerResponse) => {
+    await DATABASE.cancelTerminateContainer(res.locals.container.id);
+    respond(res);
 });
 
-containerHttpRouter.post("/:containerId/image", parseContainerId, containerAuthMiddleware("setRuntime"), async (req: ContainerRequest, res: ContainerResponse) => {
-    // TODO set docker runtime image
-    throw new OGSHError("general/unspecified", `not implemented`);
+interface ContainerRuntimeBody {
+    runtime: string;
+}
+containerHttpRouter.post("/:containerId/runtime", parseContainerId, body("runtime").isString(), containerAuthMiddleware("setRuntime"), async (req: ContainerRequest<ContainerRuntimeBody>, res: ContainerResponse) => {
+    const { appId, variantId, versionId } = res.locals.container;
+    const version = await getVersion(appId, variantId, versionId);
+    if (!(version?.supportedRuntimes || []).includes(req.body.runtime)) {
+        throw new OGSHError("general/unspecified", `invalid runtime '${req.body.runtime}' for app id '${appId}' variant id '${variantId}' version id '${versionId}'`);
+    }
+    await DATABASE.setContainerRuntime(res.locals.container.id, req.body.runtime);
+    await BROKER.updateContainerRuntime(res.locals.container.daemon.id, res.locals.container.id, req.body.runtime);
+    respond(res);
 });
 
 interface ContainerInstallBody {
@@ -70,11 +94,13 @@ containerHttpRouter.post("/:containerId/install", parseContainerId, [
     body("appId").isString(),
     body("variantId").isString(),
     body("versionId").isString()
-], containerAuthMiddleware("install"), async (req: ContainerRequest<ContainerInstallBody>, res: Response) => {
+], containerAuthMiddleware("install"), async (req: ContainerRequest<ContainerInstallBody>, res: ContainerResponse) => {
     const { appId, variantId, versionId } = req.body;
-    await getVersion(appId, variantId, versionId);
+    if (!await getVersion(appId, variantId, versionId)) {
+        throw new OGSHError("app/version-not-found", `could not set container id '${res.locals.container.id}' to app id '${appId}' variant id '${variantId}' version id '${versionId}'`);
+    }
+    await DATABASE.setContainerApp(req.params.containerId, appId, variantId, versionId);
     const container = await DATABASE.getContainer(req.params.containerId);
-    // TODO update database record
     await BROKER.installContainer(container.daemon.id, container.id, {
         appId,
         variantId,
@@ -87,25 +113,8 @@ interface ContainerNameBody {
     name: string;
 }
 containerHttpRouter.post("/:containerId/name", containerAuthMiddleware("setName"), async (req: ContainerRequest<ContainerNameBody>, res: ContainerResponse) => {
-    // TODO update database record
-    throw new OGSHError("general/unspecified", `not implemented`);
-});
-
-containerHttpRouter.post("/:containerId/resize", containerAuthMiddleware("resize"), async (req, res) => {
-    // TODO adjust container segments up or down, may have to relocate to find enough segments
-    // TODO requires backups
-    throw new OGSHError("general/unspecified", `not implemented`);
-});
-
-containerHttpRouter.post("/:containerId/region", containerAuthMiddleware("changeRegion"), async (req, res) => {
-    // TODO relocate the container to the specified region
-    // TODO requires backups
-    throw new OGSHError("general/unspecified", `not implemented`);
-});
-
-containerHttpRouter.post("/:containerId/backup", containerAuthMiddleware("makeBackup"), async (req, res) => {
-    // TODO tell container to start a backup, user will need to select where they want it sent to e.g. google drive, dropbox, onedrive, backblaze, s3, sftp etc
-    throw new OGSHError("general/unspecified", `not implemented`);
+    await DATABASE.setContainerName(res.locals.container.id, req.body.name);
+    respond(res);
 });
 
 containerHttpRouter.post("/:containerId/start", containerAuthMiddleware("start"), async (req, res: ContainerResponse) => {
@@ -134,10 +143,4 @@ interface CommandBody {
 containerHttpRouter.post("/:containerId/command", body("command").isString(), containerAuthMiddleware("command"), async (req: BodyRequest<CommandBody>, res: ContainerResponse) => {
     await BROKER.sendCommandToContainer(res.locals.container.daemon.id, res.locals.container.id, req.body.command);
     respond(res);
-});
-
-containerHttpRouter.post("/:containerId/config", async (req, res) => {
-    // Note that to get config data, you must use the files endpoints
-    // TODO send internal request
-    throw new OGSHError("general/unspecified", `not implemented`);
 });

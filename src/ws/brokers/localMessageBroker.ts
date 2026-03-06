@@ -8,12 +8,12 @@ export class LocalMessageBroker implements Broker {
 
     private websocketByDaemonId = new Map<string, WebSocket>();
 
-    async registerUserConnection(authUid: string, ws: WebSocket, containerId: string): Promise<void> {
+    async registerUserConnection(authUid: string, ws: WebSocket, containerId: string) {
         this.websocketByAuthUid.set(authUid, ws);
         this.containerIdByWebsocket.set(ws, containerId);
     }
 
-    async removeUserConnection(authUid: string): Promise<void> {
+    async removeUserConnection(authUid: string) {
         const ws = this.websocketByAuthUid.get(authUid);
         if (!ws) {
             return;
@@ -32,7 +32,7 @@ export class LocalMessageBroker implements Broker {
         return sockets;
     }
 
-    async sendLogsAndStatsToUsers(containerId: string, body: any): Promise<void> {
+    async sendLogsAndStatsToUsers(containerId: string, body: any) {
         const msg: UserMessage = {
             type: "containerOutput",
             body
@@ -43,11 +43,11 @@ export class LocalMessageBroker implements Broker {
         });
     }
 
-    async registerDaemonConnection(daemonId: string, ws: WebSocket): Promise<void> {
+    async registerDaemonConnection(daemonId: string, ws: WebSocket) {
         this.websocketByDaemonId.set(daemonId, ws);
     }
 
-    async removeDaemonConnection(daemonId: string): Promise<void> {
+    async removeDaemonConnection(daemonId: string) {
         this.websocketByDaemonId.delete(daemonId);
     }
 
@@ -59,7 +59,7 @@ export class LocalMessageBroker implements Broker {
         return ws;
     }
 
-    async startContainer(daemonId: string, containerId: string): Promise<void> {
+    async startContainer(daemonId: string, containerId: string) {
         this.getDaemonWebsocket(daemonId).send(JSON.stringify({
             route: "container",
             action: "start",
@@ -69,7 +69,7 @@ export class LocalMessageBroker implements Broker {
         }));
     }
 
-    async stopContainer(daemonId: string, containerId: string): Promise<void> {
+    async stopContainer(daemonId: string, containerId: string) {
         this.getDaemonWebsocket(daemonId).send(JSON.stringify({
             route: "container",
             action: "stop",
@@ -79,7 +79,7 @@ export class LocalMessageBroker implements Broker {
         }));
     }
 
-    async restartContainer(daemonId: string, containerId: string): Promise<void> {
+    async restartContainer(daemonId: string, containerId: string) {
         this.getDaemonWebsocket(daemonId).send(JSON.stringify({
             route: "container",
             action: "restart",
@@ -89,7 +89,7 @@ export class LocalMessageBroker implements Broker {
         }));
     }
 
-    async killContainer(daemonId: string, containerId: string): Promise<void> {
+    async killContainer(daemonId: string, containerId: string) {
         this.getDaemonWebsocket(daemonId).send(JSON.stringify({
             route: "container",
             action: "kill",
@@ -99,7 +99,7 @@ export class LocalMessageBroker implements Broker {
         }));
     }
 
-    async sendCommandToContainer(daemonId: string, containerId: string, command: string): Promise<void> {
+    async sendCommandToContainer(daemonId: string, containerId: string, command: string) {
         this.getDaemonWebsocket(daemonId).send(JSON.stringify({
             route: "container",
             action: "command",
@@ -110,7 +110,7 @@ export class LocalMessageBroker implements Broker {
         }));
     }
 
-    async installContainer(daemonId: string, containerId: string, data: ContainerAppData): Promise<void> {
+    async installContainer(daemonId: string, containerId: string, data: ContainerAppData) {
         this.getDaemonWebsocket(daemonId).send(JSON.stringify({
             route: "container",
             action: "install",
@@ -121,7 +121,7 @@ export class LocalMessageBroker implements Broker {
         }));
     }
 
-    async registerContainer(daemonId: string, data: ContainerRegisterData): Promise<void> {
+    async registerContainer(daemonId: string, data: ContainerRegisterData) {
         this.getDaemonWebsocket(daemonId).send(JSON.stringify({
             route: "container",
             action: "register",
@@ -129,7 +129,7 @@ export class LocalMessageBroker implements Broker {
         }));
     }
 
-    async removeContainer(daemonId: string, containerId: string): Promise<void> {
+    async removeContainer(daemonId: string, containerId: string) {
         this.getDaemonWebsocket(daemonId).send(JSON.stringify({
             route: "container",
             action: "remove",
@@ -139,7 +139,14 @@ export class LocalMessageBroker implements Broker {
         }));
     }
 
-    async test(daemonId: string, data: string): Promise<void> {
-        this.getDaemonWebsocket(daemonId).send(new Buffer(data));
+    async updateContainerRuntime(daemonId: string, containerId: string, runtime: string) {
+        this.getDaemonWebsocket(daemonId).send(JSON.stringify({
+            route: "container",
+            action: "runtime",
+            body: {
+                containerId,
+                runtime
+            }
+        }));
     }
 }

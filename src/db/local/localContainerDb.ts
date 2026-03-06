@@ -1,4 +1,4 @@
-import { Container, ContainerPort, ContainerPorts, ContainerPortsData, Daemon, getVariant, getVersion, OGSHError, sanitiseDaemon } from "@open-game-server-host/backend-lib";
+import { Container, ContainerPort, ContainerPorts, Daemon, getContainerConfig, getVariant, getVersion, OGSHError, sanitiseDaemon } from "@open-game-server-host/backend-lib";
 import { isContainerTerminated } from "../../container/container.js";
 import { segmentReserveMethod, SegmentReserveMethod } from "../../daemon/daemon.js";
 import { CONTAINER_ALL_PERMISSION, ContainerPermission, CreateContainerData } from "../../interfaces/container.js";
@@ -128,10 +128,6 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
     }
 
     async createContainer(data: CreateContainerData): Promise<Container> {
-        if (!await DATABASE.doesUserExist(data.userId)) {
-            // TODO
-        }
-
         const version = await getVersion(data.appId, data.variantId, data.versionId);
         if (!version) {
             throw new OGSHError("general/unspecified", `tried to create container with invalid app id '${data.appId}' variant id '${data.variantId}' version id '${data.versionId}'`);
@@ -139,7 +135,11 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
         if (!Number.isInteger(data.segments)) {
             throw new OGSHError("general/unspecified", `tried to create container with invalid segments '${data.segments}'`);
         }
-        // TODO validate container data
+        if (typeof data.free !== "boolean") throw new OGSHError("general/unspecified", `create container data 'free' field was not a boolean`);
+        const containerConfig = await getContainerConfig();
+        if (typeof data.name !== "string" || data.name.length > containerConfig.nameMaxLength) throw new OGSHError("general/unspecified", `create container data 'name' is either not a string or too long`);
+        if (!this.jsonFileExists("user", data.userId)) throw new OGSHError("general/unspecified", `user id '${data.userId}' not found`);
+        if (!this.jsonFileExists("region", data.regionId)) throw new OGSHError("general/unspecified", `region id '${data.regionId}' not found`);
 
         const daemon = await this.reserveSegments(data.regionId, segmentReserveMethod, data.segments);
 
@@ -195,17 +195,18 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
         return this.getContainer(id);
     }
 
-    async terminateContainer(id: string) {
-        const container = await this.getContainer(id);
-        const now = Date.now();
-        const remainingTime = (now - container.createdAt) / (container.contractLengthDays * 86_400_000);
-        this.writeJsonFile<ContainerLocalDbFile>("container", id, {
+    async terminateContainer(containerId: string, terminateAt: Date) {
+        const container = await this.getContainer(containerId);
+        if (terminateAt.getTime() < Date.now()) {
+            throw new OGSHError("general/unspecified", `container id '${containerId}' termination date must be in the future`);
+        }
+        this.writeJsonFile<ContainerLocalDbFile>("container", containerId, {
             appId: container.appId,
             contractLengthDays: container.contractLengthDays,
             createdAt: container.createdAt,
             daemonId: container.daemon.id,
             free: container.free,
-            id,
+            id: containerId,
             ports: container.ports,
             locked: container.locked,
             name: container.name,
@@ -215,8 +216,17 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
             users: {},
             variantId: container.variantId,
             versionId: container.versionId,
-            terminateAt: now + remainingTime
+            terminateAt: +terminateAt
         });
+    }
+
+    async cancelTerminateContainer(containerId: string) {
+        const now = Date.now();
+        const raw = this.readJsonFile<ContainerLocalDbFile>("container", containerId);
+        if (!raw.terminateAt) throw new OGSHError("general/unspecified", `container id '${containerId}' has no termination date`);
+        if (raw.terminateAt < now) throw new OGSHError("general/unspecified", `container id '${containerId}' termination date is in the past`);
+        raw.terminateAt = undefined;
+        this.writeJsonFile("container", containerId, raw);
     }
 
     async listActiveContainersByDaemon(daemonId: string): Promise<Container[]> {
@@ -237,5 +247,28 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
             containers.push(await this.getContainer(raw.id));
         }
         return containers;
+    }
+
+    async setContainerName(containerId: string, name: string) {
+        if (!name) throw new OGSHError("general/unspecified", `container id '${containerId}' new name is undefined`);
+        const containerConfig = await getContainerConfig();
+        if (name.length > containerConfig.nameMaxLength) throw new OGSHError("general/unspecified", `container id '' new name length > max length ${containerConfig.nameMaxLength}`);
+        const raw = this.readJsonFile<ContainerLocalDbFile>("container", containerId);
+        raw.name = name;
+        this.writeJsonFile("container", containerId, raw);
+    }
+
+    async setContainerRuntime(containerId: string, runtime: string) {
+        const raw = this.readJsonFile<ContainerLocalDbFile>("container", containerId);
+        raw.runtime = runtime;
+        this.writeJsonFile("container", containerId, raw);
+    }
+
+    async setContainerApp(containerId: string, appId: string, variantId: string, versionId: string) {
+        const raw = this.readJsonFile<ContainerLocalDbFile>("container", containerId);
+        raw.appId = appId;
+        raw.variantId = variantId;
+        raw.versionId = versionId;
+        this.writeJsonFile("container", containerId, raw);
     }
 }

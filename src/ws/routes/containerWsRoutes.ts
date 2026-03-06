@@ -11,9 +11,5 @@ interface ContainerLogsAndStats {
     }
 }
 containerWsRouter.register("logsAndStats", async (ws, body: ContainerLogsAndStats, locals) => {
-    // TODO validate this container id is from this daemon
-    // TODO forward statistics and console logs to connected clients
     await BROKER.sendLogsAndStatsToUsers(body.containerId, body.logsAndStats);
 });
-
-// TODO file endpoints

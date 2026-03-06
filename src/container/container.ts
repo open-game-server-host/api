@@ -1,9 +1,14 @@
-import { Container } from "@open-game-server-host/backend-lib";
+import { Container, getGlobalConfig, OGSHError } from "@open-game-server-host/backend-lib";
 import { DATABASE } from "../db/db.js";
 import { ContainerLocalDbFile } from "../db/local/localContainerDb.js";
 import { BROKER } from "../ws/brokers/broker.js";
 
 export async function createContainer(userId: string, regionId: string, appId: string, variantId: string, versionId: string, segments: number, name: string): Promise<Container> {
+    const globalConfig = await getGlobalConfig();
+    if (segments > globalConfig.maxSegments) {
+        throw new OGSHError("general/unspecified", `create container segments '${segments}' is above max segments '${globalConfig.maxSegments}'`);
+    }
+
     const container = await DATABASE.createContainer({
         appId: appId,
         variantId: variantId,

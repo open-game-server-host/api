@@ -81,7 +81,10 @@ export class LocalDaemonDb extends LocalDb implements Partial<Database> {
     }
 
     async updateDaemon(daemonId: string, data: UpdateDaemonData) {
-        // TODO validate data
+        if (typeof data.cpuArch !== "string" || data.cpuArch.length > 10) throw new OGSHError("general/unspecified", `updating daemon id '${daemonId}' cpuArch either not a string or too long`);
+        if (typeof data.cpuName !== "string" || data.cpuName.length > 30) throw new OGSHError("general/unspecified", `updating daemon id '${daemonId}' cpuName either not a string or too long`);
+        if (data.os !== "linux" && data.os !== "win32") throw new OGSHError("general/unspecified", `updating daemon id '${daemonId}' invalid os '${data.os}'`);
+        if (!data.segmentsMax || !Number.isInteger(data.segmentsMax) || data.segmentsMax < 0) throw new OGSHError("general/unspecified", `updating dameon '${daemonId}' segmentsMax either not an integer or < 0`);
         const raw = this.readJsonFile<DaemonLocalDbFile>("daemon", daemonId);
         this.writeJsonFile<DaemonLocalDbFile>("daemon", daemonId, {
             ...raw,
@@ -93,7 +96,10 @@ export class LocalDaemonDb extends LocalDb implements Partial<Database> {
     }
     
     async setupDaemon(daemonId: string, data: SetupDaemonData) {
-        // TODO validate data
+        if (!data.portRangeStart || !Number.isInteger(data.portRangeStart) || data.portRangeStart < 1024) throw new OGSHError("general/unspecified", `setup daemon id '${daemonId}' portRangeStart either not an integer or < 1024`);
+        if (!data.portRangeEnd || !Number.isInteger(data.portRangeEnd) || data.portRangeEnd < data.portRangeStart) throw new OGSHError("general/unspecified", `setup daemon id '${daemonId}' portRangeEnd either not an integer or < portRangeStart (${data.portRangeStart})`);
+        if (!data.segmentsUsable || !Number.isInteger(data.segmentsUsable)) throw new OGSHError("general/unspecified", `setup daemon id '${daemonId}' segmentsUsable is not an integer`);
+        if (!this.jsonFileExists("region", data.regionId)) throw new OGSHError("general/unspecified", `setup dameon id '${daemonId}' regionId '${data.regionId}' not found`);
         const raw = this.readJsonFile<DaemonLocalDbFile>("daemon", daemonId);
         this.writeJsonFile<DaemonLocalDbFile>("daemon", daemonId, {
             ...raw,

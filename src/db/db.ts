@@ -26,9 +26,12 @@ export interface Database {
     hasUserGotContainerPermissions(containerId: string, userId: string, ...permissions: ContainerPermission[]): Promise<boolean>;
     createContainer(data: CreateContainerData): Promise<Container>;
     terminateContainer(containerId: string, terminateAt: Date): Promise<void>;
+    cancelTerminateContainer(containerId: string): Promise<void>;
     listActiveContainersByUser(authUid: string): Promise<Container[]>; // TOOD paginate
     listActiveContainersByDaemon(daemonId: string): Promise<Container[]>; // TODO paginate
-    // logContainerAction(containerId: string, action: string, data: string): Promise<void>;
+    setContainerName(containerId: string, name: string): Promise<void>;
+    setContainerRuntime(containerId: string, runtime: string): Promise<void>;
+    setContainerApp(containerId: string, appId: string, variantId: string, versionId: string): Promise<void>;
 
     getDaemon(daemonId: string): Promise<Daemon>;
     getDaemonByApiKeyHash(apiKeyHash: string): Promise<Daemon | SetupIncompleteDaemon>;
@@ -77,8 +80,12 @@ function createLocalDb(): Database {
         hasUserGotContainerPermissions: containerDb.hasUserGotContainerPermissions.bind(containerDb),
         createContainer: containerDb.createContainer.bind(containerDb),
         terminateContainer: containerDb.terminateContainer.bind(containerDb),
+        cancelTerminateContainer: containerDb.cancelTerminateContainer.bind(containerDb),
         listActiveContainersByDaemon: containerDb.listActiveContainersByDaemon.bind(containerDb),
         listActiveContainersByUser: containerDb.listActiveContainersByUser.bind(containerDb),
+        setContainerName: containerDb.setContainerName.bind(containerDb),
+        setContainerRuntime: containerDb.setContainerRuntime.bind(containerDb),
+        setContainerApp: containerDb.setContainerApp.bind(containerDb),
         
         getDaemon: daemonDb.getDaemon.bind(daemonDb),
         getDaemonByApiKeyHash: daemonDb.getDaemonByApiKeyHash.bind(daemonDb),
@@ -117,8 +124,12 @@ function createPostgresDb(): Database {
         hasUserGotContainerPermissions: containerDb.hasUserGotContainerPermissions.bind(containerDb),
         createContainer: containerDb.createContainer.bind(containerDb),
         terminateContainer: containerDb.terminateContainer.bind(containerDb),
+        cancelTerminateContainer: containerDb.cancelTerminateContainer.bind(containerDb),
         listActiveContainersByDaemon: containerDb.listActiveContainersByDaemon.bind(containerDb),
         listActiveContainersByUser: containerDb.listActiveContainersByUser.bind(containerDb),
+        setContainerName: containerDb.setContainerName.bind(containerDb),
+        setContainerRuntime: containerDb.setContainerRuntime.bind(containerDb),
+        setContainerApp: containerDb.setContainerApp.bind(containerDb),
         
         getDaemon: daemonDb.getDaemon.bind(daemonDb),
         getDaemonByApiKeyHash: daemonDb.getDaemonByApiKeyHash.bind(daemonDb),

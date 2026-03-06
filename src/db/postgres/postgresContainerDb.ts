@@ -275,17 +275,15 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
         return this.getContainer(containerId);
     }
 
-    async terminateContainer(containerId: string, terminateAt: Date): Promise<void> {
+    async terminateContainer(containerId: string, terminateAt: Date) {
+        if (terminateAt.getTime() < Date.now()) {
+            throw new OGSHError("general/unspecified", `container id '${containerId}' termination date must be in the future`);
+        }
         const result = await this.query(`
             UPDATE containers
             SET terminate_at = $1
             WHERE
-                id = (
-                    SELECT id
-                    FROM containers
-                    WHERE id = $2
-                    LIMIT 1
-                )
+                id = $2
                 AND terminate_at IS NULL
             LIMIT 1
         `,
@@ -294,6 +292,21 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
         );
         if (result.rowCount === 0) {
             throw new OGSHError("general/unspecified", `container id '${containerId}' either doesn't exist or already has a termination date`);
+        }
+    }
+
+    async cancelTerminateContainer(containerId: string) {
+        const result = await this.query(`
+            UPDATE containers
+            SET terminate_at = NULL
+            WHERE
+                id = $1
+                AND (terminate_at IS NOT NULL AND terminate_at >= NOW())
+        `,
+            containerId
+        );
+        if (result.rowCount === 0) {
+            throw new OGSHError("general/unspecified", `container id '${containerId}' either had no termination date or it's in the past`);
         }
     }
 
@@ -331,5 +344,53 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
             containers.push(await this.convertRowToContainer(row));
         }
         return containers;
+    }
+
+    async setContainerName(containerId: string, name: string) {
+        const result = await this.query(`
+            UPDATE containers
+            SET name = $1
+            WHERE id = $2
+        `,
+            name,
+            containerId
+        );
+        if (result.rowCount === 0) {
+            throw new OGSHError("general/unspecified", `failed to update container id '${containerId}' name, row not found`);
+        }
+    }
+
+    async setContainerRuntime(containerId: string, runtime: string) {
+        const result = await this.query(`
+            UPDATE containers
+            SET runtime = $1
+            WHERE id = $2
+        `,
+            containerId,
+            runtime
+        );
+        if (result.rowCount === 0) {
+            throw new OGSHError("general/unspecified", `failed to set container id '${containerId}' runtime, row not found`);
+        }
+    }
+
+    async setContainerApp(containerId: string, appId: string, variantId: string, versionId: string) {
+        const result = await this.query(`
+            UPDATE containers
+            SET
+                app_id = $1,
+                variant_id = $2,
+                version_id = $3
+            WHERE
+                id = $4
+        `,
+            appId,
+            variantId,
+            versionId,
+            containerId
+        );
+        if (result.rowCount === 0) {
+            throw new OGSHError("general/unspecified", `failed to change app for container id '${containerId}' to app id '${appId}' variant id '${variantId}' version id '${versionId}'`);
+        }
     }
 }

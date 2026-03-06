@@ -29,7 +29,7 @@ CREATE TABLE daemons (
     api_key_hash TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     cpu_arch VARCHAR(10) DEFAULT NULL,
-    cpu_name TEXT DEFAULT NULL,
+    cpu_name VARCHAR(30) DEFAULT NULL,
     enabled BOOLEAN DEFAULT FALSE,
     port_range_start INTEGER DEFAULT 1024,
     port_range_end INTEGER DEFAULT 65535,
@@ -42,7 +42,8 @@ CREATE TABLE daemons (
 
     CHECK (port_range_start <= port_range_end),
     CHECK (port_range_start >= 1024),
-    CHECK (port_range_end <= 65535)
+    CHECK (port_range_end <= 65535),
+    CHECK (segments_max >= 0)
 );
 
 CREATE TABLE daemon_ips (

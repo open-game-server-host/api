@@ -1,13 +1,13 @@
 import { BodyRequest, respond, sanitiseDaemon, UpdateDaemonData } from "@open-game-server-host/backend-lib";
-import { Router } from "express";
+import { Response, Router } from "express";
 import { daemonAuthMiddleware, DaemonResponse } from "../../auth/daemonAuth.js";
+import { userPermissionMiddleware } from "../../auth/userAuth.js";
 import { DATABASE } from "../../db/db.js";
 import { SetupDaemonData } from "../../interfaces/daemon.js";
 
 export const daemonHttpRouter = Router();
 
-// TODO this should be executed by a person with correct permissions
-daemonHttpRouter.post("/", async (req, res) => {
+daemonHttpRouter.post("/", userPermissionMiddleware("createDaemon"), async (req, res) => {
     const daemon = await DATABASE.createDaemon();
     respond(res, daemon);
 });
@@ -17,8 +17,7 @@ daemonHttpRouter.post("/update", daemonAuthMiddleware, async (req: BodyRequest<U
     respond(res);
 });
 
-// TODO this should be executed by a person with correct permissions
-daemonHttpRouter.post("/setup/:daemonId", async (req: BodyRequest<SetupDaemonData>, res) => {
+daemonHttpRouter.post("/setup/:daemonId", userPermissionMiddleware("createDaemon"), async (req: BodyRequest<SetupDaemonData>, res: Response) => {
     await DATABASE.setupDaemon(req.params.daemonId, req.body);
     respond(res);
 });
@@ -37,12 +36,6 @@ daemonHttpRouter.post("/containers", daemonAuthMiddleware, async (req, res: Daem
     respond(res, containers);
 });
 
-// TODO this should be executed by a person with correct permissions
-daemonHttpRouter.post("/list", async (req, res) => {
-    throw new Error("not implemented");
-});
-
-// TODO this should be executed by a person with correct permissions
-daemonHttpRouter.delete("/:daemonId", async (req, res) => {
+daemonHttpRouter.delete("/:daemonId", userPermissionMiddleware("removeDaemon"), async (req, res) => {
     throw new Error("not implemented");
 });
