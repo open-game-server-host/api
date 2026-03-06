@@ -27,11 +27,18 @@ interface Params {
 wsServer.on("connection", async (ws, req) => {
     let type: string | undefined;
     let id: string | undefined;
-    let disconnectFunction: () => void = () => {}; // TODO registering a user should return a disconnect function, which removes the user from the server when they disconnect
 
-    ws.on("close", (code, reason) => {
-        // TODO
-        disconnectFunction();
+    ws.on("close", async (code, reason) => {
+        if (type && id) {
+            switch (type) {
+                case "user":
+                    await BROKER.removeUserConnection(id);
+                    break;
+                case "daemon":
+                    await BROKER.removeDaemonConnection(id);
+                    break;
+            }
+        }
         logger.info("Disconnected", {
             type,
             id
