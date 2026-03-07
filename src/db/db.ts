@@ -106,7 +106,7 @@ export const DATABASE: Database = {
         if (typeof data.cpuArch !== "string" || data.cpuArch.length > 10) {
             throw new OGSHError("general/unspecified", `updating daemon id '${daemonId}' cpuArch either not a string or too long`);
         }
-        if (typeof data.cpuName !== "string" || data.cpuName.length > 30) {
+        if (typeof data.cpuName !== "string" || data.cpuName.length > 50) {
             throw new OGSHError("general/unspecified", `updating daemon id '${daemonId}' cpuName either not a string or too long`);
         }
         if (data.os !== "linux" && data.os !== "win32") {
