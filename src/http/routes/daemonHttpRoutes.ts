@@ -27,7 +27,7 @@ daemonHttpRouter.post("/update", daemonAuthMiddleware, async (req: BodyRequest<U
     respond(res, await DATABASE.getDaemon(res.locals.daemon.id));
 });
 
-daemonHttpRouter.get("/", daemonAuthMiddleware, async (req, res) => {
+daemonHttpRouter.get("/", daemonAuthMiddleware, async (req, res: DaemonResponse) => {
     respond(res, sanitiseDaemon(res.locals.daemon));
 });
 
@@ -36,6 +36,6 @@ daemonHttpRouter.post("/containers", daemonAuthMiddleware, async (req, res: Daem
     respond(res, containers);
 });
 
-daemonHttpRouter.delete("/:daemonId", userPermissionMiddleware("removeDaemon"), async (req, res) => {
+daemonHttpRouter.delete("/delete/:daemonId", userPermissionMiddleware("removeDaemon"), async (req, res) => {
     throw new Error("not implemented");
 });

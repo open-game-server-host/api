@@ -202,4 +202,16 @@ export class PostgresDaemonDb extends PostgresDb implements Partial<Database> {
         }
         return daemons;
     }
+
+    async validateDaemonByApiKeyHash(apiKeyHash: string): Promise<boolean> {
+        return await this.countQuery(`
+            SELECT count(1)
+            FROM daemons
+            WHERE
+                api_key_hash = $1
+            LIMIT 1
+        `,
+            apiKeyHash
+        ) > 0;
+    }
 }

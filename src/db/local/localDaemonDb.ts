@@ -134,4 +134,13 @@ export class LocalDaemonDb extends LocalDb implements Partial<Database> {
         }
         return daemons;
     }
+
+    async validateDaemonByApiKeyHash(apiKeyHash: string): Promise<boolean> {
+        for (const daemon of this.listJsonFiles<DaemonLocalDbFile>("daemon")) {
+            if (daemon.data.apiKeyHash === apiKeyHash) {
+                return true;
+            }
+        }
+        return false;
+    }
 }
