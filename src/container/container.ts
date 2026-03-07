@@ -29,12 +29,6 @@ export async function createContainer(userId: string, regionId: string, appId: s
         ports: container.ports
     });
 
-    await BROKER.installContainer(container.daemon.id, container.id, {
-        appId,
-        variantId,
-        versionId
-    });
-
     return container;
 }
 
