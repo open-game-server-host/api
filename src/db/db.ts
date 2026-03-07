@@ -40,7 +40,6 @@ export interface Database {
     setupDaemon(daemonId: string, data: SetupDaemonData): Promise<void>;
     listDaemonsByRegion(regionId: string, page?: number, resultsPerPage?: number): Promise<Daemon[]>;
     listSetupIncompleteDaemons(page?: number, resultsPerPage?: number): Promise<SetupIncompleteDaemon[]>;
-    validateDaemonByApiKeyHash(apiKeyHash: string): Promise<boolean>;
 
     getIp(ipId: string): Promise<Ip>;
     getIpByValue(ip: string): Promise<Ip>;
@@ -180,7 +179,6 @@ function createLocalDb(): Database {
         setupDaemon: daemonDb.setupDaemon.bind(daemonDb),
         listDaemonsByRegion: daemonDb.listDaemonsByRegion.bind(daemonDb),
         listSetupIncompleteDaemons: daemonDb.listSetupIncompleteDaemons.bind(daemonDb),
-        validateDaemonByApiKeyHash: daemonDb.validateDaemonByApiKeyHash.bind(daemonDb),
 
         getIp: ipDb.getIp.bind(ipDb),
         getIpByValue: ipDb.getIpByValue.bind(ipDb),
@@ -225,7 +223,6 @@ function createPostgresDb(): Database {
         setupDaemon: daemonDb.setupDaemon.bind(daemonDb),
         listDaemonsByRegion: daemonDb.listDaemonsByRegion.bind(daemonDb),
         listSetupIncompleteDaemons: daemonDb.listSetupIncompleteDaemons.bind(daemonDb),
-        validateDaemonByApiKeyHash: daemonDb.validateDaemonByApiKeyHash.bind(daemonDb),
 
         getIp: ipDb.getIp.bind(ipDb),
         getIpByValue: ipDb.getIpByValue.bind(ipDb),

@@ -10,16 +10,11 @@ export interface DaemonLocals {
 
 export type DaemonResponse = Response<any, DaemonLocals>;
 
-export function getDaemonApiKeyFromRequest(req: Request): string {
+export async function daemonAuthMiddleware(req: Request, res: DaemonResponse, next: NextFunction) {
     const apiKey = req.headers.authorization;
     if (!apiKey) {
         throw new OGSHError("auth/invalid", `'authorization' header should be the daemon's API key`);
     }
-    return apiKey;    
-}
-
-export async function daemonAuthMiddleware(req: Request, res: DaemonResponse, next: NextFunction) {
-    const apiKey = getDaemonApiKeyFromRequest(req);
     const hash = hashDaemonApiKey(apiKey)
     res.locals.daemon = await DATABASE.getDaemonByApiKeyHash(hash);
 
