@@ -29,7 +29,7 @@ CREATE TABLE daemons (
     api_key_hash TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     cpu_arch VARCHAR(10) DEFAULT NULL,
-    cpu_name VARCHAR(50) DEFAULT NULL,
+    cpu_name TEXT DEFAULT NULL,
     enabled BOOLEAN DEFAULT FALSE,
     port_range_start INTEGER DEFAULT 1024,
     port_range_end INTEGER DEFAULT 65535,
