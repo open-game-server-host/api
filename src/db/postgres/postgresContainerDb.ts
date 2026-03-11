@@ -251,8 +251,8 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
                                     WHERE port NOT IN (
                                         SELECT host_port
                                         FROM container_ports
-                                        WHERE
-                                            container_id = '${containerId}'
+                                    WHERE
+                                        ip_id = rec.ip_id
                                     )
                                     ORDER BY random()
                                     LIMIT 1
