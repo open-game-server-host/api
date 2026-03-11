@@ -9,7 +9,10 @@ import { WS_CLOSE_CODE } from "./wsCloseCode.js";
 
 const logger = new Logger("WS");
 
-export const wsServer = new WebSocketServer({ noServer: true });
+export const wsServer = new WebSocketServer({
+    noServer: true,
+    autoPong: true
+});
 
 const routers = new Map<string, WsRouter>();
 function register(router: WsRouter) {
