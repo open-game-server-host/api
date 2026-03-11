@@ -153,7 +153,7 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
                 }
                 return ports;
             }
-            for (const container of await this.listActiveContainersByDaemon(daemon.id)) {
+            for (const container of await this.listActiveContainersByDaemon(daemon.id, 0, Number.MAX_SAFE_INTEGER)) {
                 Object.entries(container.ports).forEach(([ipVersion, assignedPorts]) => {
                     ports[+ipVersion] = assignPorts(daemon.portRangeStart!, daemon.portRangeEnd!, (assignedPorts as {hostPort: number}[]).map(p => p.hostPort))
                 });

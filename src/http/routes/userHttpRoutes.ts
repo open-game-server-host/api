@@ -2,6 +2,7 @@ import { OGSHError, respond } from "@open-game-server-host/backend-lib";
 import { Response, Router } from "express";
 import { userAuthMiddleware, UserLocals, userPermissionMiddleware } from "../../auth/userAuth.js";
 import { DATABASE } from "../../db/db.js";
+import { PaginatedRequest, paginateMiddleware } from "../httpServer.js";
 
 export const meHttpRouter = Router();
 
@@ -16,8 +17,11 @@ meHttpRouter.post("/", userAuthMiddleware, async (req, res: UserResponse) => {
     respond(res, await DATABASE.createUser(res.locals.authUid));
 });
 
-meHttpRouter.get("/containers", userAuthMiddleware, async (req, res: UserResponse) => {
-    respond(res, await DATABASE.listActiveContainersByUser(res.locals.authUid));
+meHttpRouter.get("/containers", paginateMiddleware, userAuthMiddleware, async (req: PaginatedRequest, res: UserResponse) => {
+    respond(res, {
+        containers: await DATABASE.listActiveContainersByUser(res.locals.authUid, req.body.page, req.body.resultsPerPage),
+        resultsPerPage: req.body.resultsPerPage
+    });
 });
 
 meHttpRouter.post("/daemon", userPermissionMiddleware("createDaemon"), async (req, res) => {

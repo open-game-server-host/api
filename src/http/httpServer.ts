@@ -1,5 +1,5 @@
-import { expressErrorHandler, Logger } from "@open-game-server-host/backend-lib";
-import express from "express";
+import { expressErrorHandler, getApiConfig, Logger } from "@open-game-server-host/backend-lib";
+import express, { NextFunction, Request, Response } from "express";
 import { readFileSync } from "fs";
 import https from "https";
 import { getPort, getTlsCertPath, getTlsKeyPath } from "../env.js";
@@ -36,4 +36,21 @@ export async function initHttpServer(logger: Logger) {
             res();
         });
     });
+}
+
+export type PaginatedRequest<T = {}> = Request<any, any, T & { page: number, resultsPerPage: number }>;
+
+export async function paginateMiddleware(req: PaginatedRequest, res: Response, next: NextFunction) {
+    const { page, resultsPerPage } = req.body;
+
+    if (typeof page !== "number" || !Number.isInteger(page) || page < 0) {
+        req.body.page = 0;
+    }
+
+    const apiConfig = await getApiConfig();
+    if (typeof resultsPerPage !== "number" || !Number.isInteger(resultsPerPage) || resultsPerPage < 1 || resultsPerPage > apiConfig.maxPaginatedResults) {
+        req.body.resultsPerPage = apiConfig.maxPaginatedResults;
+    }
+
+    next();
 }
