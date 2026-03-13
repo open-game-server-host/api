@@ -43,3 +43,7 @@ daemonHttpRouter.post("/containers", paginateMiddleware, daemonAuthMiddleware, a
 daemonHttpRouter.delete("/delete/:daemonId", userPermissionMiddleware("removeDaemon"), async (req, res) => {
     throw new Error("not implemented");
 });
+
+daemonHttpRouter.get("/auth", daemonAuthMiddleware, (req, res) => {
+    respond(res);
+});
