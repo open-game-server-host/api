@@ -11,7 +11,7 @@ export class PostgresUserDb extends PostgresDb implements Partial<Database> {
     async getUser(authUid: string): Promise<User> {
         const result = await this.query("SELECT * FROM users WHERE auth_uid = $1 LIMIT 1", authUid);
         if (result.rowCount === 0) {
-            throw new OGSHError("general/unspecified", `user with authUid '${authUid}' not found`);
+            throw new OGSHError("user/not-found", `user with authUid '${authUid}' not found`);
         }
         const row = result.rows[0];
         return {
@@ -26,7 +26,7 @@ export class PostgresUserDb extends PostgresDb implements Partial<Database> {
         const userResult = await client.query("INSERT INTO users (auth_uid) VALUES ($1) RETURNING id", authUid);
         if (userResult.rowCount === 0) {
             await client.cancel();
-            throw new OGSHError("general/unspecified", `authUid '${authUid}' already exists`);
+            throw new OGSHError("user/already-exists", `authUid '${authUid}' already exists`);
         }
         const id = userResult.rows[0].id;
         let permissionsInsert = "";
@@ -45,7 +45,7 @@ export class PostgresUserDb extends PostgresDb implements Partial<Database> {
         `);
         if (permissionResult.rowCount === 0) {
             await client.cancel();
-            throw new OGSHError("general/unspecified", `failed to add auth uid '${authUid}' default permissions`);
+            throw new OGSHError("db/query-failed", `failed to add auth uid '${authUid}' default permissions`);
         }
         await client.finish();
         return this.getUser(authUid);

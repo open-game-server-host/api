@@ -34,7 +34,6 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
             contractLengthDays: row.contract_length_days,
             createdAt: +row.created_at,
             daemon: sanitiseDaemon(await DATABASE.getDaemon(row.daemon_id)),
-            free: row.free,
             id: `${row.id}`,
             ports,
             locked: row.locked,
@@ -59,7 +58,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
             containerId
         );
         if (containerResult.rowCount === 0) {
-            throw new OGSHError("general/unspecified", `container id '${containerId}' not found`);
+            throw new OGSHError("container/not-found", `container id '${containerId}' not found`);
         }
 
         const row = containerResult.rows[0];
@@ -146,10 +145,10 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
                     regionId
                 );
             default:
-                throw new OGSHError("general/unspecified", `invalid daemon segment reserve method '${reserveMethod}'`);
+                throw new OGSHError("env/invalid-value", `invalid daemon segment reserve method '${reserveMethod}'`);
         }
         if ((await result).rowCount === 0) {
-            throw new OGSHError("general/unspecified", `no availability left in region '${regionId}'`);
+            throw new OGSHError("region/no-availability", `no availability left in region '${regionId}'`);
         }
         const row = (await result).rows[0];
         return {
@@ -200,7 +199,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
         );
         if (createContainerResult.rowCount === 0) {
             await client.cancel();
-            throw new OGSHError("general/unspecified", `could not create container`);
+            throw new OGSHError("container/create-failed", `could not create container`);
         }
         const containerId = `${createContainerResult.rows[0].id}`;
         const addPermissionsResult = await client.query(`
@@ -217,7 +216,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
         );
         if (addPermissionsResult.rowCount === 0) {
             await client.cancel();
-            throw new OGSHError("general/unspecified", `failed to give permission '${CONTAINER_ALL_PERMISSION}' to user id '${data.userId}' when creating container id '${containerId}'`);
+            throw new OGSHError("db/query-failed", `failed to give permission '${CONTAINER_ALL_PERMISSION}' to user id '${data.userId}' when creating container id '${containerId}'`);
         }
 
         if (assignedDaemon.portRangeStart && assignedDaemon.portRangeEnd) {
@@ -264,7 +263,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
                 `);
                 if (assignPortsResult.rowCount === 0) {
                     await client.cancel();
-                    throw new OGSHError("general/unspecified", `failed to assign unique ports, range start '${assignedDaemon.portRangeStart}' range end '${assignedDaemon.portRangeEnd}'`);
+                    throw new OGSHError("db/query-failed", `failed to assign unique ports, range start '${assignedDaemon.portRangeStart}' range end '${assignedDaemon.portRangeEnd}'`);
                 }
             }
         }
@@ -274,7 +273,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
 
     async terminateContainer(containerId: string, terminateAt: Date) {
         if (terminateAt.getTime() < Date.now()) {
-            throw new OGSHError("general/unspecified", `container id '${containerId}' termination date must be in the future`);
+            throw new OGSHError("container/terminate-failed", `container id '${containerId}' termination date must be in the future`);
         }
         const result = await this.query(`
             UPDATE containers
@@ -288,7 +287,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
             containerId
         );
         if (result.rowCount === 0) {
-            throw new OGSHError("general/unspecified", `container id '${containerId}' either doesn't exist or already has a termination date`);
+            throw new OGSHError("container/terminate-failed", `container id '${containerId}' either doesn't exist or already has a termination date`);
         }
     }
 
@@ -303,7 +302,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
             containerId
         );
         if (result.rowCount === 0) {
-            throw new OGSHError("general/unspecified", `container id '${containerId}' either had no termination date or it's in the past`);
+            throw new OGSHError("container/terminate-failed", `container id '${containerId}' either had no termination date or it's in the past`);
         }
     }
 
@@ -361,7 +360,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
             containerId
         );
         if (result.rowCount === 0) {
-            throw new OGSHError("general/unspecified", `failed to update container id '${containerId}' name, row not found`);
+            throw new OGSHError("db/query-failed", `failed to update container id '${containerId}' name, row not found`);
         }
     }
 
@@ -375,7 +374,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
             runtime
         );
         if (result.rowCount === 0) {
-            throw new OGSHError("general/unspecified", `failed to set container id '${containerId}' runtime, row not found`);
+            throw new OGSHError("db/query-failed", `failed to set container id '${containerId}' runtime, row not found`);
         }
     }
 
@@ -395,7 +394,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
             containerId
         );
         if (result.rowCount === 0) {
-            throw new OGSHError("general/unspecified", `failed to change app for container id '${containerId}' to app id '${appId}' variant id '${variantId}' version id '${versionId}'`);
+            throw new OGSHError("db/query-failed", `failed to change app for container id '${containerId}' to app id '${appId}' variant id '${variantId}' version id '${versionId}'`);
         }
     }
 }

@@ -12,7 +12,7 @@ export class LocalIpDb extends LocalDb {
                 return json.data;
             }
         }
-        throw new OGSHError("general/unspecified", `could not find ip '${ip}'`);
+        throw new OGSHError("ip/not-found", `could not find ip '${ip}'`);
     }
 
     async listIps(page: number = 0, resultsPerPage: number = 10): Promise<Ip[]> {

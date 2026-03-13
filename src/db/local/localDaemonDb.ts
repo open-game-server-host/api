@@ -26,7 +26,7 @@ export class LocalDaemonDb extends LocalDb implements Partial<Database> {
     async getDaemon(id: string): Promise<Daemon> {
         const raw = this.readJsonFile<DaemonLocalDbFile>("daemon", id);
         if (!raw.setupComplete) {
-            throw new OGSHError("general/unspecified", `tried to get info for an incomplete daemon '${id}'`);
+            throw new OGSHError("daemon/invalid", `tried to get info for an incomplete daemon '${id}'`);
         }
         return {
             apiKeyHash: raw.apiKeyHash,
@@ -63,7 +63,7 @@ export class LocalDaemonDb extends LocalDb implements Partial<Database> {
                 }
             }
         }
-        throw new OGSHError("general/unspecified", `no daemon found with provided api key hash`);
+        throw new OGSHError("daemon/not-found", `no daemon found with provided api key hash`);
     }
 
     async createDaemon(): Promise<string> {
@@ -93,7 +93,7 @@ export class LocalDaemonDb extends LocalDb implements Partial<Database> {
     
     async setupDaemon(daemonId: string, data: SetupDaemonData) {
         if (!this.jsonFileExists("region", data.regionId)) {
-            throw new OGSHError("general/unspecified", `setup dameon id '${daemonId}' regionId '${data.regionId}' not found`);
+            throw new OGSHError("region/not-found", `setup daemon id '${daemonId}' regionId '${data.regionId}' not found`);
         }
         const raw = this.readJsonFile<DaemonLocalDbFile>("daemon", daemonId);
         this.writeJsonFile<DaemonLocalDbFile>("daemon", daemonId, {

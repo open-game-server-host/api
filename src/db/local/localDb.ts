@@ -25,7 +25,7 @@ export abstract class LocalDb {
 
     private getJsonFilePath(folder: LocalDbFolder, id: string): string {
         if (!id) {
-            throw new OGSHError("general/unspecified", `provided undefined to getJsonFilePath, folder '${folder}' id '${id}'`);
+            throw new OGSHError("db/query-failed", `provided undefined to getJsonFilePath, folder '${folder}' id '${id}'`);
         }
         if (!id.endsWith(".json")) {
             id = id + ".json";
@@ -41,7 +41,7 @@ export abstract class LocalDb {
     protected readJsonFile<T>(folder: LocalDbFolder, id: string): T {
         const path = this.getJsonFilePath(folder, id);
         if (!existsSync(path)) {
-            throw new OGSHError("general/unspecified", `could not read json file at '${path}'`);
+            throw new OGSHError("db/query-failed", `could not read json file at '${path}'`);
         }
         return JSON.parse(readFileSync(path).toString());
     }

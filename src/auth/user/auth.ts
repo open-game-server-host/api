@@ -19,7 +19,7 @@ function createAuth(): Auth {
     switch (getAuthType()) {
         case "none": return createNoneAuth();
         case "firebase": return createFirebaseAuth();
-        default: throw new OGSHError("general/unspecified", "no auth type defined");
+        default: throw new OGSHError("env/invalid-value", "no auth type defined");
     }
 }
 

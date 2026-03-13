@@ -75,11 +75,11 @@ wsServer.on("connection", async (ws, req) => {
                 const authUid = await authenticateUser(authToken);
                 const apiConfig = await getApiConfig();
                 if ((await BROKER.listUserContainerWebsockets(authUid, containerId)).length >= apiConfig.maxWebsocketConnectionsPerUserPerContainer) {
-                    throw new OGSHError("general/unspecified", `auth uid '${authUid}' exceeded max websocket connections to container id '${containerId}'`);
+                    throw new OGSHError("ws/connection-limit", `auth uid '${authUid}' exceeded max websocket connections to container id '${containerId}'`);
                 }
                 const user = await DATABASE.getUser(authUid);
                 if (!await DATABASE.hasUserGotContainerPermissions(containerId, user.id, "listen")) {
-                    throw new OGSHError("general/unspecified", `user id '${user.id}' does not have permission 'listen' for container id '${containerId}'`);
+                    throw new OGSHError("auth/invalid", `user id '${user.id}' does not have permission 'listen' for container id '${containerId}'`);
                 }
                 await BROKER.registerUserConnection(authUid, ws, containerId);
                 ws.on("message", () => ws.close(WS_CLOSE_CODE.FORBIDDEN));
@@ -115,12 +115,12 @@ function handleWsMessage(ws: WebSocket, data: WebSocket.RawData, isBinary: boole
     let locals: any = {};
     try {
         const json = JSON.parse(data.toString()) as WsMsg;
-        if (!json.route) throw new OGSHError("general/unspecified", `'route' missing`);
-        if (!json.body) throw new OGSHError("general/unspecified", `'body' missing`);
-        if (!json.action) throw new OGSHError("general/unspecified", `'action' missing`);
+        if (!json.route) throw new OGSHError("ws/invalid-body", `'route' missing`);
+        if (!json.body) throw new OGSHError("ws/invalid-body", `'body' missing`);
+        if (!json.action) throw new OGSHError("ws/invalid-body", `'action' missing`);
 
         const router = routers.get(json.route);
-        if (!router) throw new OGSHError("general/unspecified", `router '${json.route}' not found`);
+        if (!router) throw new OGSHError("ws/invalid-route", `router '${json.route}' not found`);
 
         router.call(json.action, ws, json.body, locals, logger);
     } catch (error) {

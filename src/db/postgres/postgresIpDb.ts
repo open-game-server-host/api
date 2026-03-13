@@ -6,7 +6,7 @@ export class PostgresIpDb extends PostgresDb implements Partial<Database> {
     async getIp(ipId: string): Promise<Ip> {
         const result = await this.query(`SELECT * FROM ips WHERE id = $1 LIMIT 1`, ipId);
         if (result.rowCount === 0) {
-            throw new OGSHError("general/unspecified", `record for ip id '${ipId}' does not exist in table 'ips'`);
+            throw new OGSHError("ip/not-found", `record for ip id '${ipId}' does not exist in table 'ips'`);
         }
         const row = result.rows[0];
         return {
@@ -19,7 +19,7 @@ export class PostgresIpDb extends PostgresDb implements Partial<Database> {
     async getIpByValue(ip: string): Promise<Ip> {
         const result = await this.query(`SELECT * FROM ips WHERE ip = $1 LIMIT 1`, ip);
         if (result.rowCount === 0) {
-            throw new OGSHError("general/unspecified", `record for ip '${ip}' does not exist in table 'ips'`);
+            throw new OGSHError("ip/not-found", `record for ip '${ip}' does not exist in table 'ips'`);
         }
         const row = result.rows[0];
         return {

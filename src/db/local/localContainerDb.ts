@@ -12,7 +12,6 @@ export interface ContainerLocalDbFile {
     contractLengthDays: number;
     createdAt: number;
     daemonId: string;
-    free: boolean;
     locked: boolean;
     name: string;
     ports: ContainerPorts;
@@ -37,7 +36,6 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
             contractLengthDays: raw.contractLengthDays,
             createdAt: raw.createdAt,
             daemon: sanitiseDaemon(await DATABASE.getDaemon(raw.daemonId)),
-            free: raw.free,
             id,
             locked: raw.locked,
             name: raw.name,
@@ -122,14 +120,14 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
                 }
                 break;
             default:
-                throw new OGSHError("general/unspecified", `invalid daemon segment reserve method '${reserveMethod}'`);
+                throw new OGSHError("env/invalid-value", `invalid daemon segment reserve method '${reserveMethod}'`);
         }
-        throw new OGSHError("general/unspecified", `no availability left in region '${regionId}'`);
+        throw new OGSHError("region/no-availability", `no availability left in region '${regionId}'`);
     }
 
     async createContainer(data: CreateContainerData): Promise<Container> {
-        if (!this.jsonFileExists("user", data.userId)) throw new OGSHError("general/unspecified", `user id '${data.userId}' not found`);
-        if (!this.jsonFileExists("region", data.regionId)) throw new OGSHError("general/unspecified", `region id '${data.regionId}' not found`);
+        if (!this.jsonFileExists("user", data.userId)) throw new OGSHError("http/invalid-body", `user id '${data.userId}' not found`);
+        if (!this.jsonFileExists("region", data.regionId)) throw new OGSHError("http/invalid-body", `region id '${data.regionId}' not found`);
 
         const daemon = await this.reserveSegments(data.regionId, segmentReserveMethod, data.segments);
 
@@ -166,7 +164,6 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
             appId: data.appId,
             variantId: data.variantId,
             versionId: data.versionId,
-            free: data.free,
             name: data.name,
             runtime: version!.defaultRuntime,
             segments: data.segments,
@@ -189,14 +186,13 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
     async terminateContainer(containerId: string, terminateAt: Date) {
         const container = await this.getContainer(containerId);
         if (terminateAt.getTime() < Date.now()) {
-            throw new OGSHError("general/unspecified", `container id '${containerId}' termination date must be in the future`);
+            throw new OGSHError("container/terminate-failed", `container id '${containerId}' termination date must be in the future`);
         }
         this.writeJsonFile<ContainerLocalDbFile>("container", containerId, {
             appId: container.appId,
             contractLengthDays: container.contractLengthDays,
             createdAt: container.createdAt,
             daemonId: container.daemon.id,
-            free: container.free,
             id: containerId,
             ports: container.ports,
             locked: container.locked,
@@ -214,8 +210,8 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
     async cancelTerminateContainer(containerId: string) {
         const now = Date.now();
         const raw = this.readJsonFile<ContainerLocalDbFile>("container", containerId);
-        if (!raw.terminateAt) throw new OGSHError("general/unspecified", `container id '${containerId}' has no termination date`);
-        if (raw.terminateAt < now) throw new OGSHError("general/unspecified", `container id '${containerId}' termination date is in the past`);
+        if (!raw.terminateAt) throw new OGSHError("container/terminate-failed", `container id '${containerId}' has no termination date`);
+        if (raw.terminateAt < now) throw new OGSHError("container/terminate-failed", `container id '${containerId}' termination date is in the past`);
         raw.terminateAt = undefined;
         this.writeJsonFile("container", containerId, raw);
     }
@@ -249,9 +245,9 @@ export class LocalContainerDb extends LocalDb implements Partial<Database> {
     }
 
     async setContainerName(containerId: string, name: string) {
-        if (!name) throw new OGSHError("general/unspecified", `container id '${containerId}' new name is undefined`);
+        if (!name) throw new OGSHError("container/invalid-name", `container id '${containerId}' new name is undefined`);
         const containerConfig = await getContainerConfig();
-        if (name.length > containerConfig.nameMaxLength) throw new OGSHError("general/unspecified", `container id '' new name length > max length ${containerConfig.nameMaxLength}`);
+        if (name.length > containerConfig.nameMaxLength) throw new OGSHError("container/invalid-name", `container id '' new name length > max length ${containerConfig.nameMaxLength}`);
         const raw = this.readJsonFile<ContainerLocalDbFile>("container", containerId);
         raw.name = name;
         this.writeJsonFile("container", containerId, raw);

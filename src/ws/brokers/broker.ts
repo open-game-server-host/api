@@ -40,7 +40,7 @@ function createBroker(): Broker {
         case "local": return createLocalBroker();
         case "redis": return createRedisBroker();
         case "postgres": return createPostgresBroker();
-        default: throw new OGSHError("general/unspecified", "no broker type defined");
+        default: throw new OGSHError("env/invalid-value", "no broker type defined");
     }
 }
 

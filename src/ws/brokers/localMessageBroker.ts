@@ -62,7 +62,7 @@ export class LocalMessageBroker implements Broker {
     private getDaemonWebsocket(daemonId: string): WebSocket {
         const ws = this.websocketByDaemonId.get(daemonId);
         if (!ws) {
-            throw new OGSHError("general/unspecified", `could not get websocket for dameon id '${daemonId}'`);
+            throw new OGSHError("daemon/disconnected", `could not get websocket for dameon id '${daemonId}'`);
         }
         return ws;
     }

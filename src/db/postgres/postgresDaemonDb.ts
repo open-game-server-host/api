@@ -64,7 +64,7 @@ export class PostgresDaemonDb extends PostgresDb implements Partial<Database> {
             daemonId
         );
         if (result.rowCount === 0) {
-            throw new OGSHError("general/unspecified", `daemon id '${daemonId}' not found`);
+            throw new OGSHError("daemon/not-found", `daemon id '${daemonId}' not found`);
         }
         const row = result.rows[0];
         return await this.convertRowToDaemon(row);
@@ -86,7 +86,7 @@ export class PostgresDaemonDb extends PostgresDb implements Partial<Database> {
             apiKeyHash
         );
         if (result.rowCount === 0) {
-            throw new OGSHError("general/unspecified", `daemon not found by hash`);
+            throw new OGSHError("daemon/not-found", `daemon not found by hash`);
         }
         const row = result.rows[0];
         return await this.convertRowToDaemon(row);
@@ -103,7 +103,7 @@ export class PostgresDaemonDb extends PostgresDb implements Partial<Database> {
             )`,
             key.hash);
         if (result.rowCount === 0) {
-            throw new OGSHError("general/unspecified", `failed to create daemon record`);
+            throw new OGSHError("db/query-failed", `failed to create daemon record`);
         }
         return key.apiKey;
     }
@@ -126,7 +126,7 @@ export class PostgresDaemonDb extends PostgresDb implements Partial<Database> {
             daemonId
         );
         if (result.rowCount === 0) {
-            throw new OGSHError("general/unspecified", `could not update missing row daemon id '${daemonId}'`);
+            throw new OGSHError("daemon/not-found", `could not update missing row daemon id '${daemonId}'`);
         }
     }
 
@@ -150,7 +150,7 @@ export class PostgresDaemonDb extends PostgresDb implements Partial<Database> {
             daemonId
         );
         if (result.rowCount === 0) {
-            throw new OGSHError("general/unspecified", `could not set up daemon id '${daemonId}', it is either missing or already set up`);
+            throw new OGSHError("db/query-failed", `could not set up daemon id '${daemonId}', it is either missing or already set up`);
         }
     }
 

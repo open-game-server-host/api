@@ -1,5 +1,5 @@
 import { BodyRequest, getVersion, OGSHError, respond } from "@open-game-server-host/backend-lib";
-import { Request, Response, Router } from "express";
+import { Request, Router } from "express";
 import { body, param } from "express-validator";
 import { containerAuthMiddleware, ContainerResponse } from "../../auth/containerAuth.js";
 import { userPermissionMiddleware, UserPermissionResponse } from "../../auth/userAuth.js";
@@ -46,20 +46,7 @@ containerHttpRouter.get("/:containerId", parseContainerId, async (req: Container
 interface ContainerTerminateBody {
     date: Date;
 }
-containerHttpRouter.delete("/:containerId", body("date").custom((date, meta) => {
-    const now = new Date();
-    meta.req.body.date = now;
-    if (date) {
-        try {
-            meta.req.body.date = new Date(date);
-            if (meta.req.body.date.getTime() < now.getTime()) {
-                throw new OGSHError("general/unspecified", `termination date is < now`);
-            }
-        } catch (error) {
-            throw new OGSHError("general/unspecified", `failed to parse date '${date}'`);
-        }
-    }
-}), parseContainerId, containerAuthMiddleware("terminate"), async (req: ContainerRequest<ContainerTerminateBody>, res: ContainerResponse) => {
+containerHttpRouter.delete("/:containerId", parseContainerId, containerAuthMiddleware("terminate"), async (req: ContainerRequest<ContainerTerminateBody>, res: ContainerResponse) => {
     await DATABASE.terminateContainer(res.locals.container.id, req.body.date);
     await BROKER.removeContainer(res.locals.container.daemon.id, res.locals.container.id)
     respond(res);
@@ -76,8 +63,8 @@ interface ContainerRuntimeBody {
 containerHttpRouter.post("/:containerId/runtime", parseContainerId, body("runtime").isString(), containerAuthMiddleware("setRuntime"), async (req: ContainerRequest<ContainerRuntimeBody>, res: ContainerResponse) => {
     const { appId, variantId, versionId } = res.locals.container;
     const version = await getVersion(appId, variantId, versionId);
-    if (!(version?.supportedRuntimes || []).includes(req.body.runtime)) {
-        throw new OGSHError("general/unspecified", `invalid runtime '${req.body.runtime}' for app id '${appId}' variant id '${variantId}' version id '${versionId}'`);
+    if (!(version?.supportedRuntimes || []).includes(req.body.runtime)) { // TODO move this to db validators
+        throw new OGSHError("container/invalid-runtime", `invalid runtime '${req.body.runtime}' for app id '${appId}' variant id '${variantId}' version id '${versionId}'`);
     }
     await DATABASE.setContainerRuntime(res.locals.container.id, req.body.runtime);
     await BROKER.updateContainerRuntime(res.locals.container.daemon.id, res.locals.container.id, req.body.runtime);

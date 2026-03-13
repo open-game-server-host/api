@@ -1,4 +1,4 @@
-import { OGSHError, respond } from "@open-game-server-host/backend-lib";
+import { respond } from "@open-game-server-host/backend-lib";
 import { Response, Router } from "express";
 import { userAuthMiddleware, UserLocals, userPermissionMiddleware } from "../../auth/userAuth.js";
 import { DATABASE } from "../../db/db.js";
@@ -29,10 +29,10 @@ meHttpRouter.post("/daemon", userPermissionMiddleware("createDaemon"), async (re
     respond(res, daemon);
 });
 
-meHttpRouter.post("/daemons", userPermissionMiddleware("listDaemons"), async (req, res) => {
-    throw new OGSHError("general/unspecified", `not implemented`);
-});
+// meHttpRouter.post("/daemons", userPermissionMiddleware("listDaemons"), async (req, res) => {
+//     throw new OGSHError("general/unspecified", `not implemented`);
+// });
 
-meHttpRouter.delete("/daemon/:daemonId", userPermissionMiddleware("removeDaemon"), async (req, res) => {
-    throw new OGSHError("general/unspecified", `not implemented`);
-});
+// meHttpRouter.delete("/daemon/:daemonId", userPermissionMiddleware("removeDaemon"), async (req, res) => {
+//     throw new OGSHError("general/unspecified", `not implemented`);
+// });

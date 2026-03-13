@@ -60,7 +60,7 @@ export function getTlsKeyPath(): string {
 export function getPort(): number {
     const port = +parsedVariables.get(portKey)!;
     if (!Number.isInteger(port)) {
-        throw new OGSHError("general/unspecified", "port should be an integer");
+        throw new OGSHError("env/invalid-value", "port should be an integer");
     }
     return port;
 }

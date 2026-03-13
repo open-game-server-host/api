@@ -7,7 +7,7 @@ export class PostgresRegionDb extends PostgresDb implements Partial<Database> {
     async getRegion(regionId: string): Promise<Region> {
         const result = await this.query("SELECT * FROM regions WHERE id = $1 LIMIT 1", regionId);
         if (result.rowCount === 0) {
-            throw new OGSHError("general/unspecified", `no row in regions table matching id '${regionId}'`);
+            throw new OGSHError("region/not-found", `no row in regions table matching id '${regionId}'`);
         }
         result.oid
         const row = result.rows[0];
@@ -32,7 +32,7 @@ export class PostgresRegionDb extends PostgresDb implements Partial<Database> {
             data.name,
             data.priceMultiplier);
         if (result.rowCount === 0) {
-            throw new OGSHError("general/unspecified", `failed to create new region`);
+            throw new OGSHError("db/query-failed", `failed to create new region`);
         }
         const id = `${result.rows[0].id}`;
         return this.getRegion(id);

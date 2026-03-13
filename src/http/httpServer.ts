@@ -18,6 +18,11 @@ export async function initHttpServer(logger: Logger) {
     router.use("/v1/me", meHttpRouter);
     router.use("/v1/daemon", daemonHttpRouter);
 
+    router.use((req, res, next) => {
+        console.log(`Invalid path: ${req.path}`);
+        next();
+    });
+
     router.use(expressErrorHandler);
 
     const server = https.createServer({

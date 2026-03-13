@@ -31,7 +31,7 @@ export class LocalUserDb extends LocalDb implements Partial<Database> {
 
     async createUser(authUid: string): Promise<User> {
         if (this.jsonFileExists("user", authUid)) {
-            throw new OGSHError("general/unspecified", `tried to create user authUid '${authUid}' but they already exist`);
+            throw new OGSHError("user/already-exists", `tried to create user authUid '${authUid}' but they already exist`);
         }
 
         const id = this.createUniqueId("user");

@@ -35,7 +35,7 @@ async function createPool(logger: Logger): Promise<Pool> {
     const host = parsed.get(hostKey)!;
     const port = +parsed.get(portKey)!;
     if (!Number.isInteger(port)) {
-        throw new OGSHError("general/unspecified", `postgres port must be an integer`);
+        throw new OGSHError("env/invalid-value", `postgres port must be an integer`);
     }
     const user = parsed.get(userKey)!;
     const password = parsed.get(passwordKey)!;
@@ -57,7 +57,7 @@ async function createPool(logger: Logger): Promise<Pool> {
         // }
     });
     pool.connect().catch(error => {
-        throw new OGSHError("general/unspecified", error);
+        throw new OGSHError("db/connection-failed", error);
     });
 
     return pool;
@@ -86,18 +86,18 @@ export abstract class PostgresDb implements PostgresClient {
             return result;
         }).catch(error => {
             client.release();
-            throw new OGSHError("general/unspecified", error);
+            throw new OGSHError("db/query-failed", error);
         });
     }
 
     async countQuery(statement: string, ...args: any[]): Promise<number> {
         const result = await this.query(statement, ...args);
         if (result.rowCount === 0 || !result.rows[0].count) {
-            throw new OGSHError("general/unspecified", `countQuery function did not produce a "count" row, statement: '${statement}'`);
+            throw new OGSHError("db/query-failed", `countQuery function did not produce a "count" row, statement: '${statement}'`);
         }
         const count = +result.rows[0].count;
         if (!Number.isInteger(count)) {
-            throw new OGSHError("general/unspecified", `"count" was not an integer, statement: '${statement}'`);
+            throw new OGSHError("db/query-failed", `"count" was not an integer, statement: '${statement}'`);
         }
         return count;
     }
@@ -106,7 +106,7 @@ export abstract class PostgresDb implements PostgresClient {
         const client = await (await PostgresDb.pool).connect();
         await client.query("BEGIN").catch(error => {
             client.release();
-            throw new OGSHError("general/unspecified", error);
+            throw new OGSHError("db/query-failed", error);
         });
         return new PostgresTransaction(client);
     }
@@ -121,7 +121,7 @@ class PostgresTransaction implements PostgresClient {
 
     private checkFinished() {
         if (this.finished) {
-            throw new OGSHError("general/unspecified", `transaction already finished`);
+            throw new OGSHError("db/query-failed", `transaction already finished`);
         }
     }
 
@@ -131,7 +131,7 @@ class PostgresTransaction implements PostgresClient {
             return result;
         }).catch(error => {
             this.cancel();
-            throw new OGSHError("general/unspecified", error);
+            throw new OGSHError("db/query-failed", error);
         });
     }
 
@@ -140,12 +140,12 @@ class PostgresTransaction implements PostgresClient {
         const result = await this.query(statement, ...args);
         if (result.rowCount === 0 || !result.rows[0].count) {
             this.cancel();
-            throw new OGSHError("general/unspecified", `countQuery function did not produce a "count" row, statement: '${statement}'`);
+            throw new OGSHError("db/query-failed", `countQuery function did not produce a "count" row, statement: '${statement}'`);
         }
         const count = +result.rows[0].count;
         if (!Number.isInteger(count)) {
             this.cancel();
-            throw new OGSHError("general/unspecified", `"count" was not an integer, statement: '${statement}'`);
+            throw new OGSHError("db/query-failed", `"count" was not an integer, statement: '${statement}'`);
         }
         return count;
     }
@@ -155,7 +155,7 @@ class PostgresTransaction implements PostgresClient {
         this.finished = true;
         await this.client.query("COMMIT").catch(error => {
             this.client.release();
-            throw new OGSHError("general/unspecified", error);
+            throw new OGSHError("db/query-failed", error);
         });
         this.client.release();
     }
@@ -165,7 +165,7 @@ class PostgresTransaction implements PostgresClient {
         this.finished = true;
         await this.client.query("ROLLBACK").catch(error => {
             this.client.release();
-            throw new OGSHError("general/unspecified", error);
+            throw new OGSHError("db/query-failed", error);
         });
         this.client.release();
     }
