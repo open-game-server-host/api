@@ -52,6 +52,9 @@ export class LocalMessageBroker implements Broker {
     }
 
     async registerDaemonConnection(daemonId: string, ws: WebSocket) {
+        if (this.websocketByDaemonId.has(daemonId)) {
+            throw new OGSHError("ws/already-connected", `daemon id '${daemonId}' websocket already connected`);
+        }
         this.websocketByDaemonId.set(daemonId, ws);
     }
 
