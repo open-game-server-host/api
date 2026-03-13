@@ -89,11 +89,16 @@ wsServer.on("connection", async (ws, req) => {
                 break;
             }
             case "daemon": {
+                console.log(`1 ${id}`);
                 const hash = hashDaemonApiKey(authToken);
+                console.log(`2 ${id}`);
                 const daemon = await DATABASE.getDaemonByApiKeyHash(hash);
+                console.log(`3 ${id}`);
                 id = daemon.id;
                 await BROKER.registerDaemonConnection(daemon.id, ws);
+                console.log(`4 ${id}`);
                 ws.on("message", (data, isBinary) => handleWsMessage(ws, data, isBinary));
+                console.log(`5 ${id}`);
                 break;
             }
             default: {
@@ -105,6 +110,7 @@ wsServer.on("connection", async (ws, req) => {
             id
         });
     } catch (error) {
+        console.log(`6 ${id}`);
         const responseBody = formatErrorResponseBody(error as Error);
         ws.send(JSON.stringify(responseBody));
         ws.close(WS_CLOSE_CODE.UNAUTHORIZED);
