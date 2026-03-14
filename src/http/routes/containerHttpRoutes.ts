@@ -31,7 +31,14 @@ containerHttpRouter.post("/", [
 ], userPermissionMiddleware("createContainer"), async (req: BodyRequest<ContainerCreateBody>, res: UserPermissionResponse) => {
     const { appId, variantId, versionId, segments, name, regionId } = req.body;
     const container = await createContainer(res.locals.user.id, regionId, appId, variantId, versionId, segments, name);
-    await DATABASE.addContainerAuditLog(container.id, res.locals.user.id, "create");
+    await DATABASE.addContainerAuditLog(container.id, res.locals.user.id, "create", {
+        appId,
+        variantId,
+        versionId,
+        segments,
+        name,
+        regionId
+    });
     respond(res, container);
 });
 
