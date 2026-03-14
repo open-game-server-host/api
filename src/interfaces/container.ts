@@ -37,6 +37,7 @@ export interface ContainerAuditLog {
 }
 
 export type ContainerAction =
+    | "create"
     | "start"
     | "stop"
     | "restart"
