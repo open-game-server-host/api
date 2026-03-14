@@ -436,7 +436,6 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
             INSERT INTO containers_audit (
                 user_id,
                 container_id,
-                run_at,
                 action,
                 data
             )
@@ -444,8 +443,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
                 $1,
                 $2,
                 $3,
-                $4,
-                $5
+                $4
             )
         `,
             userId,
