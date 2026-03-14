@@ -1,6 +1,6 @@
 import { Container, Daemon, getContainerConfig, getVersion, Ip, OGSHError, Region, UpdateDaemonData, User } from "@open-game-server-host/backend-lib";
 import { getDbType } from "../env.js";
-import { ContainerAuditLog, ContainerPermission, CreateContainerData } from "../interfaces/container.js";
+import { ContainerAction, ContainerAuditLog, ContainerPermission, CreateContainerData } from "../interfaces/container.js";
 import { SetupDaemonData, SetupIncompleteDaemon } from "../interfaces/daemon.js";
 import { CreateRegionData } from "../interfaces/region.js";
 import { UserPermission } from "../interfaces/user.js";
@@ -34,7 +34,7 @@ export interface Database {
     setContainerRuntime(containerId: string, runtime: string): Promise<void>;
     setContainerApp(containerId: string, appId: string, variantId: string, versionId: string): Promise<void>;
     getContainerAuditLogs(containerId: string, page?: number, resultsPerPage?: number): Promise<ContainerAuditLog[]>;
-    addContainerAuditLog(log: ContainerAuditLog): Promise<void>;
+    addContainerAuditLog(containerId: string, userId: string, action: ContainerAction, data?: {[key: string]: any}): Promise<void>;
 
     getDaemon(daemonId: string): Promise<Daemon>;
     getDaemonByApiKeyHash(apiKeyHash: string): Promise<Daemon | SetupIncompleteDaemon>;

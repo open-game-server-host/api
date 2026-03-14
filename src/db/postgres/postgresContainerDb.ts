@@ -1,7 +1,7 @@
 import { Container, ContainerPorts, getVariant, getVersion, OGSHError, sanitiseDaemon } from "@open-game-server-host/backend-lib";
 import { QueryResult } from "pg";
 import { segmentReserveMethod, SegmentReserveMethod } from "../../daemon/daemon.js";
-import { CONTAINER_ALL_PERMISSION, ContainerAuditLog, ContainerPermission, CreateContainerData } from "../../interfaces/container.js";
+import { CONTAINER_ALL_PERMISSION, ContainerAction, ContainerAuditLog, ContainerPermission, CreateContainerData } from "../../interfaces/container.js";
 import { DATABASE, Database } from "../db.js";
 import { PostgresClient, PostgresDb } from "./postgresDb.js";
 
@@ -431,7 +431,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
         return logs;
     }
 
-    async addContainerAuditLog(log: ContainerAuditLog) {
+    async addContainerAuditLog(containerId: string, userId: string, action: ContainerAction, data?: {[key: string]: any}) {
         const result = await this.query(`
             INSERT INTO containers_audit (
                 user_id,
@@ -448,14 +448,13 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
                 $5
             )
         `,
-            log.user.id,
-            log.containerId,
-            log.runAt,
-            log.action,
-            log.data
+            userId,
+            containerId,
+            action,
+            data ? JSON.stringify(data) : undefined
         );
         if (result.rowCount === 0) {
-            throw new OGSHError("general/unspecified", `failed to add audit log action '${log.action}' for container id '${log.containerId}'`);
+            throw new OGSHError("general/unspecified", `failed to add audit log action '${action}' for container id '${containerId}'`);
         }
     }
 }

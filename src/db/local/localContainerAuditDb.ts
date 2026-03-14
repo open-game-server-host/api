@@ -4,6 +4,7 @@ import { DATABASE, Database } from "../db.js";
 
 export class LocalContainerAuditDb implements Partial<Database> {
     private static readonly basePath = "localdb/container/";
+    private static readonly separator = "፧";
 
     private getLogFilePath(containerId: string): string {
         return `${LocalContainerAuditDb.basePath}${containerId}_audit.txt`;
@@ -43,7 +44,8 @@ export class LocalContainerAuditDb implements Partial<Database> {
         });
     }
 
-    async addContainerAuditLog(log: ContainerAuditLog) {
-        appendFileSync(this.getLogFilePath(log.containerId), `${log.user.id}:${log.containerId}:${log.runAt}:${log.action}\n`);
+    async addContainerAuditLog(containerId: string, userId: string, action: ContainerAction, data?: {[key: string]: any}) {
+        const s = LocalContainerAuditDb.separator;
+        appendFileSync(this.getLogFilePath(containerId), `${userId}${s}${containerId}${s}${Date.now()}${s}${action}${s}${data ? JSON.stringify(data) : ""}\n`);
     }
 }

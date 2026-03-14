@@ -31,12 +31,7 @@ containerHttpRouter.post("/", [
 ], userPermissionMiddleware("createContainer"), async (req: BodyRequest<ContainerCreateBody>, res: UserPermissionResponse) => {
     const { appId, variantId, versionId, segments, name, regionId } = req.body;
     const container = await createContainer(res.locals.user.id, regionId, appId, variantId, versionId, segments, name);
-    await DATABASE.addContainerAuditLog({
-        action: "create",
-        containerId: container.id,
-        runAt: Date.now(),
-        user: res.locals.user
-    });
+    await DATABASE.addContainerAuditLog(container.id, res.locals.user.id, "create");
     respond(res, container);
 });
 
@@ -74,12 +69,7 @@ containerHttpRouter.post("/:containerId/runtime", parseContainerId, body("runtim
     }
     await DATABASE.setContainerRuntime(res.locals.container.id, req.body.runtime);
     await BROKER.updateContainerRuntime(res.locals.container.daemon.id, res.locals.container.id, req.body.runtime);
-    await DATABASE.addContainerAuditLog({
-        action: "setRuntime",
-        containerId: res.locals.container.id,
-        runAt: Date.now(),
-        user: res.locals.user
-    });
+    await DATABASE.addContainerAuditLog(res.locals.container.id, res.locals.user.id, "setRuntime", { runtime: req.body.runtime });
     respond(res);
 });
 
@@ -103,12 +93,7 @@ containerHttpRouter.post("/:containerId/install", parseContainerId, [
         variantId,
         versionId
     });
-    await DATABASE.addContainerAuditLog({
-        action: "install",
-        containerId: res.locals.container.id,
-        runAt: Date.now(),
-        user: res.locals.user
-    });
+    await DATABASE.addContainerAuditLog(res.locals.container.id, res.locals.user.id, "install", { appId, variantId, versionId });
     respond(res);
 });
 
@@ -117,56 +102,31 @@ interface ContainerNameBody {
 }
 containerHttpRouter.post("/:containerId/name", containerAuthMiddleware("setName"), async (req: ContainerRequest<ContainerNameBody>, res: ContainerResponse) => {
     await DATABASE.setContainerName(res.locals.container.id, req.body.name);
-    await DATABASE.addContainerAuditLog({
-        action: "setName",
-        containerId: res.locals.container.id,
-        runAt: Date.now(),
-        user: res.locals.user
-    });
+    await DATABASE.addContainerAuditLog(res.locals.container.id, res.locals.user.id, "setName", { name: req.body.name });
     respond(res);
 });
 
 containerHttpRouter.post("/:containerId/start", containerAuthMiddleware("start"), async (req, res: ContainerResponse) => {
     await BROKER.startContainer(res.locals.container.daemon.id, res.locals.container.id);
-    await DATABASE.addContainerAuditLog({
-        action: "start",
-        containerId: res.locals.container.id,
-        runAt: Date.now(),
-        user: res.locals.user
-    });
+    await DATABASE.addContainerAuditLog(res.locals.container.id, res.locals.user.id, "start");
     respond(res);
 });
 
 containerHttpRouter.post("/:containerId/stop", containerAuthMiddleware("stop"), async (req, res: ContainerResponse) => {
     await BROKER.stopContainer(res.locals.container.daemon.id, res.locals.container.id);
-    await DATABASE.addContainerAuditLog({
-        action: "stop",
-        containerId: res.locals.container.id,
-        runAt: Date.now(),
-        user: res.locals.user
-    });
+    await DATABASE.addContainerAuditLog(res.locals.container.id, res.locals.user.id, "stop");
     respond(res);
 });
 
 containerHttpRouter.post("/:containerId/restart", containerAuthMiddleware("start", "stop"), async (req, res: ContainerResponse) => {
     await BROKER.restartContainer(res.locals.container.daemon.id, res.locals.container.id);
-    await DATABASE.addContainerAuditLog({
-        action: "restart",
-        containerId: res.locals.container.id,
-        runAt: Date.now(),
-        user: res.locals.user
-    });
+    await DATABASE.addContainerAuditLog(res.locals.container.id, res.locals.user.id, "restart");
     respond(res);
 });
 
 containerHttpRouter.post("/:containerId/kill", containerAuthMiddleware("kill"), async (req, res: ContainerResponse) => {
     await BROKER.killContainer(res.locals.container.daemon.id, res.locals.container.id);
-    await DATABASE.addContainerAuditLog({
-        action: "kill",
-        containerId: res.locals.container.id,
-        runAt: Date.now(),
-        user: res.locals.user
-    });
+    await DATABASE.addContainerAuditLog(res.locals.container.id, res.locals.user.id, "kill");
     respond(res);
 });
 
@@ -175,11 +135,6 @@ interface CommandBody {
 }
 containerHttpRouter.post("/:containerId/command", body("command").isString(), containerAuthMiddleware("command"), async (req: BodyRequest<CommandBody>, res: ContainerResponse) => {
     await BROKER.sendCommandToContainer(res.locals.container.daemon.id, res.locals.container.id, req.body.command);
-    await DATABASE.addContainerAuditLog({
-        action: "command",
-        containerId: res.locals.container.id,
-        runAt: Date.now(),
-        user: res.locals.user
-    });
+    await DATABASE.addContainerAuditLog(res.locals.container.id, res.locals.user.id, "command"); // Do not store the command itself because it could contain API keys or other sensitive data
     respond(res);
 });
