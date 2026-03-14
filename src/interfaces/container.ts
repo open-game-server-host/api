@@ -1,3 +1,5 @@
+import { User } from "@open-game-server-host/backend-lib";
+
 export interface CreateContainerData {
     appId: string;
     variantId: string;
@@ -25,3 +27,10 @@ export type ContainerPermission =
 ;
 
 export const CONTAINER_ALL_PERMISSION: ContainerPermission = "*";
+
+export interface ContainerAuditLog {
+    containerId: string;
+    user: User;
+    runAt: number;
+    action: string;
+}

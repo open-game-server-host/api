@@ -17,7 +17,8 @@ export class PostgresUserDb extends PostgresDb implements Partial<Database> {
         return {
             authUid: row.auth_uid,
             createdAt: +row.created_at,
-            id: `${row.id}`
+            id: `${row.id}`,
+            email: row.email
         }
     }
 

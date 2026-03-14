@@ -1,7 +1,7 @@
 import { Container, ContainerPorts, getVariant, getVersion, OGSHError, sanitiseDaemon } from "@open-game-server-host/backend-lib";
 import { QueryResult } from "pg";
 import { segmentReserveMethod, SegmentReserveMethod } from "../../daemon/daemon.js";
-import { CONTAINER_ALL_PERMISSION, ContainerPermission, CreateContainerData } from "../../interfaces/container.js";
+import { CONTAINER_ALL_PERMISSION, ContainerAuditLog, ContainerPermission, CreateContainerData } from "../../interfaces/container.js";
 import { DATABASE, Database } from "../db.js";
 import { PostgresClient, PostgresDb } from "./postgresDb.js";
 
@@ -12,7 +12,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
                 c.host_port,
                 c.container_port,
                 ips.version
-            FROM container_ports c
+            FROM containers_ports c
             JOIN ips ON c.ip_id = ips.id
             WHERE container_id = $1
         `,
@@ -68,7 +68,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
     async getUserContainerPermissions(containerId: string, userId: string): Promise<ContainerPermission[]> {
         const result = await this.query(`
             SELECT permission
-            FROM container_permissions
+            FROM containers_permissions
             WHERE
                 container_id = $1
                 AND user_id = $2
@@ -203,7 +203,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
         }
         const containerId = `${createContainerResult.rows[0].id}`;
         const addPermissionsResult = await client.query(`
-            INSERT INTO container_permissions (
+            INSERT INTO containers_permissions (
                 container_id,
                 user_id,
                 permission
@@ -234,7 +234,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
                         FOR rec IN
                             SELECT ip_id FROM daemon_ips WHERE daemon_id = '${assignedDaemon.id}'
                         LOOP
-                            INSERT INTO container_ports (
+                            INSERT INTO containers_ports (
                                 ip_id,
                                 container_id,
                                 container_port,
@@ -249,7 +249,7 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
                                     FROM generate_series(${assignedDaemon.portRangeStart}, ${assignedDaemon.portRangeEnd}) AS port
                                     WHERE port NOT IN (
                                         SELECT host_port
-                                        FROM container_ports
+                                        FROM containers_ports
                                     WHERE
                                         ip_id = rec.ip_id
                                     )
@@ -396,5 +396,42 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
         if (result.rowCount === 0) {
             throw new OGSHError("db/query-failed", `failed to change app for container id '${containerId}' to app id '${appId}' variant id '${variantId}' version id '${versionId}'`);
         }
+    }
+
+    async getContainerAuditLogs(containerId: string, page?: number, resultsPerPage?: number): Promise<ContainerAuditLog[]> {
+        const result = await this.query(`
+            SELECT
+                ca.*,
+                u.*
+            FROM containers_audit ca
+            WHERE
+                container_id=$1
+            JOIN users u ON user_id = ca.user_id
+            LIMIT $2
+            OFFSET $3
+        `,
+            containerId,
+            resultsPerPage,
+            page
+        );
+        const logs: ContainerAuditLog[] = [];
+        result.rows.forEach(row => {
+            logs.push({
+                action: row.action,
+                containerId: row.container_id,
+                runAt: +row.run_at,
+                user: {
+                    authUid: row.auth_uid,
+                    createdAt: +row.created_at,
+                    email: row.email,
+                    id: `${row.id}`
+                }
+            });
+        });
+        return logs;
+    }
+
+    async addContainerAuditLogs(logs: ContainerAuditLog[]): Promise<void> {
+        
     }
 }

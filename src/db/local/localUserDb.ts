@@ -2,11 +2,13 @@ import { OGSHError, User } from "@open-game-server-host/backend-lib";
 import { USER_ALL_PERMISSION, USER_DEFAULT_PERMISSIONS, UserPermission } from "../../interfaces/user.js";
 import { Database } from "../db.js";
 import { LocalDb } from "./localDb.js";
+import { ContainerAuditLog } from "../../interfaces/container.js";
 
 interface UserLocalDbFile {
     id: string;
     authUid: string;
     createdAt: number;
+    email: string;
     permissions: UserPermission[];
 }
 
@@ -25,11 +27,12 @@ export class LocalUserDb extends LocalDb implements Partial<Database> {
         return {
             authUid: json.authUid,
             createdAt: json.createdAt,
-            id: json.id
+            id: json.id,
+            email: json.email
         }
     }
 
-    async createUser(authUid: string): Promise<User> {
+    async createUser(authUid: string, email: string): Promise<User> {
         if (this.jsonFileExists("user", authUid)) {
             throw new OGSHError("user/already-exists", `tried to create user authUid '${authUid}' but they already exist`);
         }
@@ -39,6 +42,7 @@ export class LocalUserDb extends LocalDb implements Partial<Database> {
             createdAt: Date.now(),
             id,
             authUid: authUid,
+            email,
             permissions: USER_DEFAULT_PERMISSIONS
         });
         return this.getUser(authUid);

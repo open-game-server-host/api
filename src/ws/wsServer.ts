@@ -72,16 +72,16 @@ wsServer.on("connection", async (ws, req) => {
                 if (typeof containerId !== "string") {
                     throw new OGSHError("ws/invalid-params", `'containerId' should be a string`);
                 }
-                const authUid = await authenticateUser(authToken);
+                const userAuth = await authenticateUser(authToken);
                 const apiConfig = await getApiConfig();
-                if ((await BROKER.listUserContainerWebsockets(authUid, containerId)).length >= apiConfig.maxWebsocketConnectionsPerUserPerContainer) {
-                    throw new OGSHError("ws/connection-limit", `auth uid '${authUid}' exceeded max websocket connections to container id '${containerId}'`);
+                if ((await BROKER.listUserContainerWebsockets(userAuth.authUid, containerId)).length >= apiConfig.maxWebsocketConnectionsPerUserPerContainer) {
+                    throw new OGSHError("ws/connection-limit", `auth uid '${userAuth.authUid}' exceeded max websocket connections to container id '${containerId}'`);
                 }
-                const user = await DATABASE.getUser(authUid);
+                const user = await DATABASE.getUser(userAuth.authUid);
                 if (!await DATABASE.hasUserGotContainerPermissions(containerId, user.id, "listen")) {
                     throw new OGSHError("auth/invalid", `user id '${user.id}' does not have permission 'listen' for container id '${containerId}'`);
                 }
-                await BROKER.registerUserConnection(authUid, ws, containerId);
+                await BROKER.registerUserConnection(userAuth.authUid, ws, containerId);
                 ws.on("message", () => ws.close(WS_CLOSE_CODE.FORBIDDEN));
                 logger.info("User connected", {
                     id

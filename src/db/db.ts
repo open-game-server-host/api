@@ -1,9 +1,10 @@
 import { Container, Daemon, getContainerConfig, getVersion, Ip, OGSHError, Region, UpdateDaemonData, User } from "@open-game-server-host/backend-lib";
 import { getDbType } from "../env.js";
-import { ContainerPermission, CreateContainerData } from "../interfaces/container.js";
+import { ContainerAuditLog, ContainerPermission, CreateContainerData } from "../interfaces/container.js";
 import { SetupDaemonData, SetupIncompleteDaemon } from "../interfaces/daemon.js";
 import { CreateRegionData } from "../interfaces/region.js";
 import { UserPermission } from "../interfaces/user.js";
+import { LocalContainerAuditDb } from "./local/localContainerAuditDb.js";
 import { LocalContainerDb } from "./local/localContainerDb.js";
 import { LocalDaemonDb } from "./local/localDaemonDb.js";
 import { LocalIpDb } from "./local/localIpDb.js";
@@ -32,6 +33,8 @@ export interface Database {
     setContainerName(containerId: string, name: string): Promise<void>;
     setContainerRuntime(containerId: string, runtime: string): Promise<void>;
     setContainerApp(containerId: string, appId: string, variantId: string, versionId: string): Promise<void>;
+    getContainerAuditLogs(containerId: string, page?: number, resultsPerPage?: number): Promise<ContainerAuditLog[]>;
+    addContainerAuditLogs(logs: ContainerAuditLog[]): Promise<void>;
 
     getDaemon(daemonId: string): Promise<Daemon>;
     getDaemonByApiKeyHash(apiKeyHash: string): Promise<Daemon | SetupIncompleteDaemon>;
@@ -51,7 +54,7 @@ export interface Database {
 
     doesUserExist(userId: string): Promise<boolean>;
     getUser(authUid: string): Promise<User>;
-    createUser(authUid: string): Promise<User>;
+    createUser(authUid: string, email: string): Promise<User>;
     getUserPermissions(userId: string): Promise<UserPermission[]>;
     hasUserGotPermissions(userId: string, permissions: UserPermission[]): Promise<boolean>;
 }
@@ -156,9 +159,9 @@ function createLocalDb(): Database {
     const containerDb = new LocalContainerDb();
     const daemonDb = new LocalDaemonDb();
     const ipDb = new LocalIpDb();
-    
     const regionDb = new LocalRegionDb();
     const userDb = new LocalUserDb();
+    const containerAuditDb = new LocalContainerAuditDb();
 
     return {
         getContainer: containerDb.getContainer.bind(containerDb),
@@ -172,6 +175,8 @@ function createLocalDb(): Database {
         setContainerName: containerDb.setContainerName.bind(containerDb),
         setContainerRuntime: containerDb.setContainerRuntime.bind(containerDb),
         setContainerApp: containerDb.setContainerApp.bind(containerDb),
+        getContainerAuditLogs: containerAuditDb.getContainerAuditLogs.bind(containerDb),
+        addContainerAuditLogs: containerAuditDb.addContainerAuditLogs.bind(containerDb),
         
         getDaemon: daemonDb.getDaemon.bind(daemonDb),
         getDaemonByApiKeyHash: daemonDb.getDaemonByApiKeyHash.bind(daemonDb),
@@ -216,6 +221,8 @@ function createPostgresDb(): Database {
         setContainerName: containerDb.setContainerName.bind(containerDb),
         setContainerRuntime: containerDb.setContainerRuntime.bind(containerDb),
         setContainerApp: containerDb.setContainerApp.bind(containerDb),
+        getContainerAuditLogs: containerDb.getContainerAuditLogs.bind(containerDb),
+        addContainerAuditLogs: containerDb.addContainerAuditLogs.bind(containerDb),
         
         getDaemon: daemonDb.getDaemon.bind(daemonDb),
         getDaemonByApiKeyHash: daemonDb.getDaemonByApiKeyHash.bind(daemonDb),

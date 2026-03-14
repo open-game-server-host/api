@@ -19,8 +19,8 @@ export function containerAuthMiddleware(...permissions: ContainerPermission[]): 
             throw new OGSHError("container/not-found", `request parameter 'containerId' was not a string`);
         }
 
-        const authUid = await authenticateUser(req);
-        res.locals.user = await DATABASE.getUser(authUid);
+        const userAuth = await authenticateUser(req);
+        res.locals.user = await DATABASE.getUser(userAuth.authUid);
         res.locals.permissions = await DATABASE.getUserContainerPermissions(containerId, res.locals.user.id);
 
         for (const permission of permissions) {

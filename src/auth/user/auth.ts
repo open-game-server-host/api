@@ -7,10 +7,14 @@ export type AuthType =
     | "firebase"
 ;
 
-export type AuthUid = string;
+
+export interface UserAuth {
+    authUid: string;
+    email: string;
+}
 
 export interface Auth {
-    validateUser(token: string): Promise<AuthUid>;
+    validateUser(token: string): Promise<UserAuth>;
 }
 
 export const AUTH = createAuth();
@@ -25,7 +29,13 @@ function createAuth(): Auth {
 
 function createNoneAuth(): Auth {
     return {
-        validateUser: async (token: string) => token // Use token as authUid
+        // Use token as authUid
+        validateUser: async (token: string) => {
+            return {
+                authUid: token,
+                email: `${token}@example.com`
+            }
+        }
     }
 }
 

@@ -1,7 +1,8 @@
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     auth_uid VARCHAR(36) NOT NULL UNIQUE,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    email CHARACTER VARYING(254) NOT NULL
 );
 
 CREATE TABLE user_permissions (
@@ -76,7 +77,7 @@ CREATE TABLE users_containers (
     UNIQUE (user_id, container_id)
 );
 
-CREATE TABLE container_permissions (
+CREATE TABLE containers_permissions (
     container_id INTEGER NOT NULL REFERENCES containers(id) ON DELETE CASCADE,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     permission TEXT NOT NULL,
@@ -84,7 +85,7 @@ CREATE TABLE container_permissions (
     UNIQUE (container_id, user_id, permission)
 );
 
-CREATE TABLE container_ports (
+CREATE TABLE containers_ports (
     id SERIAL PRIMARY KEY,
     ip_id INTEGER NOT NULL REFERENCES ips(id) ON DELETE CASCADE,
     host_port INTEGER NOT NULL,
@@ -93,6 +94,14 @@ CREATE TABLE container_ports (
 
     UNIQUE (ip_id, host_port)
 );
+
+CREATE TABLE containers_audit (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    container_id INTEGER NOT NULL REFERENCES containers(id) ON DELETE CASCADE,
+    run_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    action TEXT NOT NULL
+)
 
 CREATE INDEX idx_users_auth_uid ON users(auth_uid);
 CREATE INDEX idx_daemons_region_id ON daemons(region_id);

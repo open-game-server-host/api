@@ -14,7 +14,7 @@ meHttpRouter.get("/", userAuthMiddleware, async (req, res: UserResponse) => {
 });
 
 meHttpRouter.post("/", userAuthMiddleware, async (req, res: UserResponse) => {
-    respond(res, await DATABASE.createUser(res.locals.authUid));
+    respond(res, await DATABASE.createUser(res.locals.authUid, res.locals.email));
 });
 
 meHttpRouter.get("/containers", paginateMiddleware, userAuthMiddleware, async (req: PaginatedRequest, res: UserResponse) => {
