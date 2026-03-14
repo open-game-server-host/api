@@ -68,6 +68,12 @@ containerHttpRouter.post("/:containerId/runtime", parseContainerId, body("runtim
     }
     await DATABASE.setContainerRuntime(res.locals.container.id, req.body.runtime);
     await BROKER.updateContainerRuntime(res.locals.container.daemon.id, res.locals.container.id, req.body.runtime);
+    await DATABASE.addContainerAuditLog({
+        action: "setRuntime",
+        containerId: res.locals.container.id,
+        runAt: Date.now(),
+        user: res.locals.user
+    });
     respond(res);
 });
 
@@ -86,11 +92,16 @@ containerHttpRouter.post("/:containerId/install", parseContainerId, [
         throw new OGSHError("app/version-not-found", `could not set container id '${res.locals.container.id}' to app id '${appId}' variant id '${variantId}' version id '${versionId}'`);
     }
     await DATABASE.setContainerApp(req.params.containerId, appId, variantId, versionId);
-    const container = await DATABASE.getContainer(req.params.containerId);
-    await BROKER.installContainer(container.daemon.id, container.id, {
+    await BROKER.installContainer(res.locals.container.daemon.id, res.locals.container.id, {
         appId,
         variantId,
         versionId
+    });
+    await DATABASE.addContainerAuditLog({
+        action: "install",
+        containerId: res.locals.container.id,
+        runAt: Date.now(),
+        user: res.locals.user
     });
     respond(res);
 });
@@ -100,26 +111,56 @@ interface ContainerNameBody {
 }
 containerHttpRouter.post("/:containerId/name", containerAuthMiddleware("setName"), async (req: ContainerRequest<ContainerNameBody>, res: ContainerResponse) => {
     await DATABASE.setContainerName(res.locals.container.id, req.body.name);
+    await DATABASE.addContainerAuditLog({
+        action: "setName",
+        containerId: res.locals.container.id,
+        runAt: Date.now(),
+        user: res.locals.user
+    });
     respond(res);
 });
 
 containerHttpRouter.post("/:containerId/start", containerAuthMiddleware("start"), async (req, res: ContainerResponse) => {
     await BROKER.startContainer(res.locals.container.daemon.id, res.locals.container.id);
+    await DATABASE.addContainerAuditLog({
+        action: "start",
+        containerId: res.locals.container.id,
+        runAt: Date.now(),
+        user: res.locals.user
+    });
     respond(res);
 });
 
 containerHttpRouter.post("/:containerId/stop", containerAuthMiddleware("stop"), async (req, res: ContainerResponse) => {
     await BROKER.stopContainer(res.locals.container.daemon.id, res.locals.container.id);
+    await DATABASE.addContainerAuditLog({
+        action: "stop",
+        containerId: res.locals.container.id,
+        runAt: Date.now(),
+        user: res.locals.user
+    });
     respond(res);
 });
 
 containerHttpRouter.post("/:containerId/restart", containerAuthMiddleware("start", "stop"), async (req, res: ContainerResponse) => {
     await BROKER.restartContainer(res.locals.container.daemon.id, res.locals.container.id);
+    await DATABASE.addContainerAuditLog({
+        action: "restart",
+        containerId: res.locals.container.id,
+        runAt: Date.now(),
+        user: res.locals.user
+    });
     respond(res);
 });
 
 containerHttpRouter.post("/:containerId/kill", containerAuthMiddleware("kill"), async (req, res: ContainerResponse) => {
     await BROKER.killContainer(res.locals.container.daemon.id, res.locals.container.id);
+    await DATABASE.addContainerAuditLog({
+        action: "kill",
+        containerId: res.locals.container.id,
+        runAt: Date.now(),
+        user: res.locals.user
+    });
     respond(res);
 });
 
@@ -128,5 +169,11 @@ interface CommandBody {
 }
 containerHttpRouter.post("/:containerId/command", body("command").isString(), containerAuthMiddleware("command"), async (req: BodyRequest<CommandBody>, res: ContainerResponse) => {
     await BROKER.sendCommandToContainer(res.locals.container.daemon.id, res.locals.container.id, req.body.command);
+    await DATABASE.addContainerAuditLog({
+        action: "command",
+        containerId: res.locals.container.id,
+        runAt: Date.now(),
+        user: res.locals.user
+    });
     respond(res);
 });

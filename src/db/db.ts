@@ -34,7 +34,7 @@ export interface Database {
     setContainerRuntime(containerId: string, runtime: string): Promise<void>;
     setContainerApp(containerId: string, appId: string, variantId: string, versionId: string): Promise<void>;
     getContainerAuditLogs(containerId: string, page?: number, resultsPerPage?: number): Promise<ContainerAuditLog[]>;
-    addContainerAuditLogs(logs: ContainerAuditLog[]): Promise<void>;
+    addContainerAuditLog(log: ContainerAuditLog): Promise<void>;
 
     getDaemon(daemonId: string): Promise<Daemon>;
     getDaemonByApiKeyHash(apiKeyHash: string): Promise<Daemon | SetupIncompleteDaemon>;
@@ -176,7 +176,7 @@ function createLocalDb(): Database {
         setContainerRuntime: containerDb.setContainerRuntime.bind(containerDb),
         setContainerApp: containerDb.setContainerApp.bind(containerDb),
         getContainerAuditLogs: containerAuditDb.getContainerAuditLogs.bind(containerDb),
-        addContainerAuditLogs: containerAuditDb.addContainerAuditLogs.bind(containerDb),
+        addContainerAuditLog: containerAuditDb.addContainerAuditLog.bind(containerDb),
         
         getDaemon: daemonDb.getDaemon.bind(daemonDb),
         getDaemonByApiKeyHash: daemonDb.getDaemonByApiKeyHash.bind(daemonDb),
@@ -222,7 +222,7 @@ function createPostgresDb(): Database {
         setContainerRuntime: containerDb.setContainerRuntime.bind(containerDb),
         setContainerApp: containerDb.setContainerApp.bind(containerDb),
         getContainerAuditLogs: containerDb.getContainerAuditLogs.bind(containerDb),
-        addContainerAuditLogs: containerDb.addContainerAuditLogs.bind(containerDb),
+        addContainerAuditLog: containerDb.addContainerAuditLog.bind(containerDb),
         
         getDaemon: daemonDb.getDaemon.bind(daemonDb),
         getDaemonByApiKeyHash: daemonDb.getDaemonByApiKeyHash.bind(daemonDb),

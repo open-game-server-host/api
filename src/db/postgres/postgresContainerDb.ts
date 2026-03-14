@@ -431,7 +431,31 @@ export class PostgresContainerDb extends PostgresDb implements Partial<Database>
         return logs;
     }
 
-    async addContainerAuditLogs(logs: ContainerAuditLog[]): Promise<void> {
-        
+    async addContainerAuditLog(log: ContainerAuditLog) {
+        const result = await this.query(`
+            INSERT INTO containers_audit (
+                user_id,
+                container_id,
+                run_at,
+                action,
+                data
+            )
+            VALUES (
+                $1,
+                $2,
+                $3,
+                $4,
+                $5
+            )
+        `,
+            log.user.id,
+            log.containerId,
+            log.runAt,
+            log.action,
+            log.data
+        );
+        if (result.rowCount === 0) {
+            throw new OGSHError("general/unspecified", `failed to add audit log action '${log.action}' for container id '${log.containerId}'`);
+        }
     }
 }

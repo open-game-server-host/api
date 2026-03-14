@@ -1,5 +1,5 @@
 import { appendFileSync, createReadStream } from "node:fs";
-import { ContainerAuditLog } from "../../interfaces/container.js";
+import { ContainerAction, ContainerAuditLog } from "../../interfaces/container.js";
 import { DATABASE, Database } from "../db.js";
 
 export class LocalContainerAuditDb implements Partial<Database> {
@@ -29,7 +29,8 @@ export class LocalContainerAuditDb implements Partial<Database> {
                         user: await DATABASE.getUser(data[0]),
                         containerId: data[1],
                         runAt: +data[2],
-                        action: data[3]
+                        action: data[3] as ContainerAction,
+                        data: data[4]
                     });
                 }
 
@@ -42,9 +43,7 @@ export class LocalContainerAuditDb implements Partial<Database> {
         });
     }
 
-    async addContainerAuditLogs(logs: ContainerAuditLog[]) {
-        logs.forEach(log => {
-            appendFileSync(this.getLogFilePath(log.containerId), `${log.user.id}:${log.containerId}:${log.runAt}:${log.action}\n`);
-        });
+    async addContainerAuditLog(log: ContainerAuditLog) {
+        appendFileSync(this.getLogFilePath(log.containerId), `${log.user.id}:${log.containerId}:${log.runAt}:${log.action}\n`);
     }
 }

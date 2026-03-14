@@ -32,5 +32,20 @@ export interface ContainerAuditLog {
     containerId: string;
     user: User;
     runAt: number;
-    action: string;
+    action: ContainerAction;
+    data?: any;
 }
+
+export type ContainerAction =
+    | "start"
+    | "stop"
+    | "restart"
+    | "kill"
+    | "command"
+    | "install"
+    | "setRuntime"
+    | "setName"
+    | "resize"
+    | "changeRegion"
+    | "makeBackup"
+;

@@ -100,7 +100,8 @@ CREATE TABLE containers_audit (
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     container_id INTEGER NOT NULL REFERENCES containers(id) ON DELETE CASCADE,
     run_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    action TEXT NOT NULL
+    action TEXT NOT NULL,
+    data JSON DEFAULT NULL
 )
 
 CREATE INDEX idx_users_auth_uid ON users(auth_uid);
