@@ -22,9 +22,9 @@ export class PostgresUserDb extends PostgresDb implements Partial<Database> {
         }
     }
 
-    async createUser(authUid: string): Promise<User> {
+    async createUser(authUid: string, email: string): Promise<User> {
         const client = await this.startTransaction();
-        const userResult = await client.query("INSERT INTO users (auth_uid) VALUES ($1) RETURNING id", authUid);
+        const userResult = await client.query("INSERT INTO users (auth_uid, email) VALUES ($1, $2) RETURNING id", authUid, email);
         if (userResult.rowCount === 0) {
             await client.cancel();
             throw new OGSHError("user/already-exists", `authUid '${authUid}' already exists`);
