@@ -7,6 +7,7 @@ import { wsServer } from "../ws/wsServer.js";
 import { appHttpRouter } from "./routes/appHttpRoutes.js";
 import { containerHttpRouter } from "./routes/containerHttpRoutes.js";
 import { daemonHttpRouter } from "./routes/daemonHttpRoutes.js";
+import { regionHttpRouter } from "./routes/regionHttpRoutes.js";
 import { meHttpRouter } from "./routes/userHttpRoutes.js";
 
 export async function initHttpServer(logger: Logger) {
@@ -17,6 +18,7 @@ export async function initHttpServer(logger: Logger) {
     router.use("/v1/container", containerHttpRouter);
     router.use("/v1/me", meHttpRouter);
     router.use("/v1/daemon", daemonHttpRouter);
+    router.use("/v1/region", regionHttpRouter);
 
     router.use((req, res, next) => {
         console.log(`Invalid path: ${req.path}`);
