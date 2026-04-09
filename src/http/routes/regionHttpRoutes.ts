@@ -5,6 +5,6 @@ import { DATABASE } from "../../db/db.js";
 export const regionHttpRouter = Router();
 
 regionHttpRouter.get("/", async (req, res) => {
-    const regions = DATABASE.listRegions();
+    const regions = await DATABASE.listRegions();
     return respond(res, regions);
 });
