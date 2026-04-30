@@ -70,17 +70,27 @@ export interface PostgresClient {
 
 export abstract class PostgresDb implements PostgresClient {
     private static logger = new Logger();
-    private static pool: Promise<Pool> = createPool(PostgresDb.logger);
+    private static pool: Promise<Pool> | undefined; // = createPool(PostgresDb.logger);
 
-    static {
-        PostgresDb.pool.catch(error => {
-            // TODO proper error handling
-            console.error(error);
-        });
+    constructor() {
+        if (!PostgresDb.pool) {
+            PostgresDb.pool = createPool(PostgresDb.logger);
+            PostgresDb.pool.catch(error => {
+                // TODO proper error handling
+                console.error(error);
+            });
+        }
+    }
+
+    private async getPool(): Promise<Pool> {
+        if (!PostgresDb.pool) {
+            throw new OGSHError("db/query-failed", `Postgres pool not initialised`);
+        }
+        return PostgresDb.pool;
     }
 
     async query(statement: string, ...args: any[]): Promise<QueryResult> {
-        const client = await (await PostgresDb.pool).connect();
+        const client = await (await this.getPool()).connect();
         return client.query(statement, args).then(result => {
             client.release();
             return result;
@@ -103,7 +113,7 @@ export abstract class PostgresDb implements PostgresClient {
     }
 
     protected async startTransaction(): Promise<PostgresTransaction> {
-        const client = await (await PostgresDb.pool).connect();
+        const client = await (await this.getPool()).connect();
         await client.query("BEGIN").catch(error => {
             client.release();
             throw new OGSHError("db/query-failed", error);
